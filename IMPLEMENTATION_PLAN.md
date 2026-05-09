@@ -574,7 +574,7 @@ and reported your findings.
 
 | Phase | Name | Governing Spec | Status | Date Completed |
 |---|---|---|---|---|
-| 0 | Project Scaffold | `specs/00-scaffold.md` | ⬜ Not Started | — |
+| 0 | Project Scaffold | `specs/00-scaffold.md` | ✅ Complete | 2026-05-09 |
 | 1a | Data Model: Schema & Types | `specs/01a-data-model-schema.md` | ⬜ Not Started | — |
 | 1b | Data Model: Query Layer | `specs/01b-data-model-queries.md` | ⬜ Not Started | — |
 | 1c | Service Layer Foundation | `specs/02-service-layer-foundation.md` | ⬜ Not Started | — |

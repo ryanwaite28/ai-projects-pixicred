@@ -1,0 +1,47 @@
+{
+  "name": "pixicred-backend",
+  "version": "0.1.0",
+  "description": "PixiCred serverless credit card lending platform — backend",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:all": "npm run test && npm run test:integration",
+    "db:migrate": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "seed:local": "tsx scripts/seed-local.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.600.0",
+    "@aws-sdk/client-sns": "^3.600.0",
+    "@aws-sdk/client-sqs": "^3.600.0",
+    "@aws-sdk/rds-signer": "^3.600.0",
+    "@prisma/client": "^5.14.0",
+    "bcrypt": "^5.1.1",
+    "handlebars": "^4.7.8",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "dotenv": "^16.4.5",
+    "esbuild": "^0.21.0",
+    "eslint": "^8.57.0",
+    "pg": "^8.11.0",
+    "prettier": "^3.2.0",
+    "prisma": "^5.14.0",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

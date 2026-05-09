@@ -1,0 +1,47 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Stubs — full field definitions added in Phase 1a
+
+model Application {
+  id String @id @default(uuid())
+
+  @@map("applications")
+}
+
+model Account {
+  id String @id @default(uuid())
+
+  @@map("accounts")
+}
+
+model PaymentDueSchedule {
+  id String @id @default(uuid())
+
+  @@map("payment_due_schedules")
+}
+
+model Transaction {
+  id String @id @default(uuid())
+
+  @@map("transactions")
+}
+
+model Statement {
+  id String @id @default(uuid())
+
+  @@map("statements")
+}
+
+model NotificationPreference {
+  id String @id @default(uuid())
+
+  @@map("notification_preferences")
+}

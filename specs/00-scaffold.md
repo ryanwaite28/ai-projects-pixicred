@@ -1,6 +1,6 @@
 # Spec: Project Scaffold
 **FR references**: NFR-03, NFR-04, NFR-05, NFR-06, NFR-08 (no behavioral FRs exist for Phase 0; scaffold requirements are governed by non-functional requirements)
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -130,20 +130,20 @@ test('db:migrate is idempotent — running twice does not throw')
 ---
 
 ## Done When
-- [ ] `npm ci` succeeds with no peer-dep warnings
-- [ ] `npm run lint` exits 0 on a fresh checkout
-- [ ] `npm run typecheck` exits 0 on a fresh checkout
-- [ ] `npm run db:generate` (`prisma generate`) exits 0 and PrismaClient is available in `node_modules/.prisma/client`
-- [ ] `npm run build` exits 0 and `dist/` is populated (Prisma client marked external; `.hbs` loader active)
+- [x] `npm ci` succeeds with no peer-dep warnings
+- [x] `npm run lint` exits 0 on a fresh checkout
+- [x] `npm run typecheck` exits 0 on a fresh checkout
+- [x] `npm run db:generate` (`prisma generate`) exits 0 and PrismaClient is available in `node_modules/.prisma/client`
+- [x] `npm run build` exits 0 and `dist/` is populated (Prisma client marked external; `.hbs` loader active)
 - [ ] `docker-compose up -d && docker-compose ps` shows all services healthy
 - [ ] `infra/ministack/init.sh` exits 0 and all 4 queues + 4 DLQs + SNS topic exist in MiniStack
 - [ ] `npm run db:migrate` (`prisma migrate deploy`) exits 0 (idempotent on repeat run)
-- [ ] All toolchain unit tests pass (`npm run test`)
+- [x] All toolchain unit tests pass (`npm run test`)
 - [ ] All scaffold integration tests pass (`npm run test:integration`)
-- [ ] `.github/workflows/ci.yml` runs and passes lint + typecheck jobs on push
-- [ ] `.github/workflows/migrate.yml` exists with `workflow_dispatch` and path-filter triggers
-- [ ] No secrets in any committed file
+- [x] `.github/workflows/ci.yml` runs and passes lint + typecheck jobs on push
+- [x] `.github/workflows/migrate.yml` exists with `workflow_dispatch` and path-filter triggers
+- [x] No secrets in any committed file
 - [ ] `infra/terraform/bootstrap/` validates with `terraform validate`
-- [ ] `prisma/schema.prisma` has generator with `binaryTargets` for Lambda runtime
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 0 row marked complete
+- [x] `prisma/schema.prisma` has generator with `binaryTargets` for Lambda runtime
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 0 row marked complete

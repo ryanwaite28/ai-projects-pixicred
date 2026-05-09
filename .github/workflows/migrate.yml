@@ -1,0 +1,57 @@
+name: Migrate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prisma/migrations/**'
+      - 'prisma/schema.prisma'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - run: npm ci
+
+      - name: Fetch MIGRATIONS_DATABASE_URL from Secrets Manager
+        run: |
+          ENV="${{ github.event.inputs.environment || 'dev' }}"
+          MIGRATIONS_DATABASE_URL=$(aws secretsmanager get-secret-value \
+            --secret-id "pixicred-${ENV}-secrets" \
+            --query 'SecretString' --output text | jq -r '.MIGRATIONS_DATABASE_URL')
+          echo "DATABASE_URL=${MIGRATIONS_DATABASE_URL}" >> "$GITHUB_ENV"
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Sync migrations to S3 audit trail
+        run: |
+          ENV="${{ github.event.inputs.environment || 'dev' }}"
+          aws s3 sync prisma/migrations/ "s3://pixicred-${ENV}-migrations/"
