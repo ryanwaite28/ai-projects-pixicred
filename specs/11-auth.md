@@ -23,8 +23,10 @@ FR-AUTH-01 through FR-AUTH-08 require a secure, stateless authentication mechani
 - `src/db/queries/auth.queries.ts` — query functions for `portal_accounts`
 - `src/service/auth.service.ts` — `registerPortalAccount` and `loginPortalAccount`
 - `src/handlers/api/auth.handler.ts` — `POST /auth/register` and `POST /auth/login`
+- `src/lib/jwt.ts` — shared `validateBearerToken(authHeader, expectedAccountId)` utility used by all account-scoped Lambda handlers (FR-AUTH-04)
 - `tests/service/auth.service.test.ts`
 - `tests/db/auth.queries.test.ts`
+- `tests/lib/jwt.test.ts`
 
 ---
 
@@ -90,6 +92,35 @@ Steps:
 
 `JWT_SECRET` is read from `process.env.JWT_SECRET` (injected from Secrets Manager in non-local environments; set directly in `.env` locally).
 
+### `src/lib/jwt.ts` — shared JWT validation utility (FR-AUTH-04)
+
+Used by every account-scoped API Lambda handler and the `local/api-server.ts` middleware:
+
+```typescript
+export function validateBearerToken(
+  authHeader: string | undefined,
+  expectedAccountId: string,
+  jwtSecret: string
+): { accountId: string; email: string } {
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new PixiCredError('UNAUTHORIZED', 'Missing or malformed Authorization header');
+  }
+  const token = authHeader.slice(7);
+  let payload: { accountId: string; email: string };
+  try {
+    payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] }) as typeof payload;
+  } catch {
+    throw new PixiCredError('UNAUTHORIZED', 'Invalid or expired JWT');
+  }
+  if (payload.accountId !== expectedAccountId) {
+    throw new PixiCredError('FORBIDDEN', 'JWT accountId does not match resource accountId');
+  }
+  return payload;
+}
+```
+
+Lambda handlers extract the `Authorization` header from `event.headers`, call `validateBearerToken`, and return 401/403 on `PixiCredError` before invoking the service layer. `JWT_SECRET` is read from `process.env.JWT_SECRET`, which is populated from Secrets Manager at Lambda cold start via `src/lib/config.ts` (see Phase 8 spec).
+
 ### `src/handlers/api/auth.handler.ts`
 
 Handler shape: `POST /auth/register` and `POST /auth/login`. No JWT required on these routes (FR-AUTH-05).
@@ -109,6 +140,16 @@ Handler shape: `POST /auth/register` and `POST /auth/login`. No JWT required on 
 ---
 
 ## Exact Test Cases
+
+### `tests/lib/jwt.test.ts`
+```
+test('validateBearerToken throws UNAUTHORIZED when Authorization header is absent')
+test('validateBearerToken throws UNAUTHORIZED when Authorization header does not start with Bearer')
+test('validateBearerToken throws UNAUTHORIZED when token signature is invalid')
+test('validateBearerToken throws UNAUTHORIZED when token is expired')
+test('validateBearerToken throws FORBIDDEN when JWT accountId does not match expectedAccountId')
+test('validateBearerToken returns decoded payload when token is valid and accountId matches')
+```
 
 ### `tests/db/auth.queries.test.ts`
 ```
@@ -143,5 +184,8 @@ test('loginPortalAccount JWT payload contains exp approximately 24h from now')
 - [ ] `loginPortalAccount` returns `INVALID_CREDENTIALS` for both missing-email and wrong-password cases — verified by separate tests (timing-safe; both paths return the same error code)
 - [ ] `auth.handler.ts` is a thin dispatch — no business logic; shape validation only
 - [ ] `POST /auth/register` and `POST /auth/login` work end-to-end via `local/api-server.ts`
+- [ ] `src/lib/jwt.ts` — `validateBearerToken` correctly throws `UNAUTHORIZED`/`FORBIDDEN`; all 6 test cases pass
+- [ ] All account-scoped Lambda handlers call `validateBearerToken` before invoking service layer (FR-AUTH-04)
+- [ ] `JWT_SECRET` sourced from `process.env.JWT_SECRET` — populated from Secrets Manager by `src/lib/config.ts` at Lambda cold start
 - [ ] Spec status updated to ✅ Implemented
 - [ ] IMPLEMENTATION_PLAN.md Phase 9 row marked complete

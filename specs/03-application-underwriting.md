@@ -122,7 +122,14 @@ Fields (FR-EMAIL-01): `to = application.email`, `from = SES_FROM_EMAIL env var`,
 export function buildApprovalEmail(application: Application, account: Account): SendEmailInput
 ```
 
-Fields (FR-EMAIL-02): `to = application.email`, `from = SES_FROM_EMAIL env var`, body includes `account.creditLimit`, `account.accountId`, opening balance of $500, first payment due date (`account.paymentDueDate`), and account setup instructions. Body HTML produced by rendering `src/emails/templates/approval.hbs` via Handlebars.
+Fields (FR-EMAIL-02, FR-AUTH-07): `to = application.email`, `from = SES_FROM_EMAIL env var`. Body HTML produced by rendering `src/emails/templates/approval.hbs` via Handlebars. The template must include:
+- Approved credit limit (`account.creditLimit`)
+- Opening balance of $500
+- First payment due date (`account.paymentDueDate`)
+- `account.accountId` displayed as **"Account Setup Code"** — this is how the applicant links their account to portal login
+- A prompt to visit `https://pixicred.com/setup` and enter the Account Setup Code to create their portal password
+
+This explicit "Account Setup Code" label is required by FR-AUTH-07; without it the applicant has no path to the `/setup` page.
 
 ### `src/handlers/sqs/credit-check.handler.ts`
 
@@ -204,7 +211,8 @@ test('buildDeclineEmail uses SES_FROM_EMAIL env var as sender when set')
 test('buildApprovalEmail sets to field to applicant email')
 test('buildApprovalEmail subject indicates approval')
 test('buildApprovalEmail body includes credit limit')
-test('buildApprovalEmail body includes accountId')
+test('buildApprovalEmail body labels accountId as Account Setup Code')
+test('buildApprovalEmail body includes link or reference to pixicred.com/setup')
 test('buildApprovalEmail body includes opening balance of 500')
 test('buildApprovalEmail body includes payment due date from account.paymentDueDate')
 test('buildApprovalEmail uses SES_FROM_EMAIL env var as sender when set')

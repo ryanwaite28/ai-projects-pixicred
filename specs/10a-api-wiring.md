@@ -38,13 +38,18 @@ NFR-03 requires Lambda-based compute at near-zero rest cost. NFR-05 requires ful
 - `infra/terraform/modules/rds/main.tf` — `aws_db_instance` (Postgres 15, `db.t4g.micro`, single-AZ, 20 GB gp3, 7-day backup, `iam_database_authentication_enabled = true`), `aws_db_subnet_group`, `aws_security_group`
 - `infra/terraform/modules/rds/variables.tf`
 - `infra/terraform/modules/rds/outputs.tf` — `endpoint`, `port`, `db_name`
-- `infra/terraform/modules/api-gateway/main.tf` — `aws_apigatewayv2_api` (HTTP), `aws_apigatewayv2_stage` (`$default`, auto-deploy), one integration + one route per API Lambda route, `aws_lambda_permission` per Lambda
-- `infra/terraform/modules/api-gateway/variables.tf` — `name`, `integrations` map of `{ lambda_arn, routes: [{ method, path }] }`
-- `infra/terraform/modules/api-gateway/outputs.tf` — `api_endpoint`
+- `infra/terraform/modules/api-gateway/main.tf` — `aws_apigatewayv2_api` (HTTP), `aws_apigatewayv2_stage` (`$default`, auto-deploy), one integration + one route per API Lambda route, `aws_lambda_permission` per Lambda, `aws_apigatewayv2_domain_name` + `aws_apigatewayv2_api_mapping` for custom domain (`api.pixicred.com`)
+- `infra/terraform/modules/api-gateway/variables.tf` — `name`, `integrations` map of `{ lambda_arn, routes: [{ method, path }] }`, `domain_name`, `acm_certificate_arn`
+- `infra/terraform/modules/api-gateway/outputs.tf` — `api_endpoint`, `domain_name_target` (for Route 53 alias)
+- `infra/terraform/modules/frontend/main.tf` — `aws_s3_bucket` (`pixicred-{env}-frontend`), `aws_s3_bucket_public_access_block`, `aws_cloudfront_origin_access_control`, `aws_cloudfront_distribution` (HTTPS-only; ACM cert `arn:aws:acm:us-east-1:408141212087:certificate/*`; default root object `index.html`; custom error 403/404 → `index.html` 200 for SPA routing), `aws_s3_bucket_policy` (allows CloudFront OAC only)
+- `infra/terraform/modules/frontend/variables.tf` — `env`, `acm_certificate_arn`, `hosted_zone_id`
+- `infra/terraform/modules/frontend/outputs.tf` — `cloudfront_domain_name`, `cloudfront_hosted_zone_id`, `s3_bucket_name`
+- `infra/terraform/modules/dns/main.tf` — Route 53 A-records (alias): `pixicred.com` + `www.pixicred.com` → CloudFront distribution; `api.pixicred.com` → API Gateway regional domain; uses hosted zone `Z0511624US25VOVRIJF3`
+- `infra/terraform/modules/dns/variables.tf` — `hosted_zone_id`, `cloudfront_domain_name`, `cloudfront_hosted_zone_id`, `api_gateway_domain_name`, `api_gateway_hosted_zone_id`
 
 ### Terraform environments
-- `infra/terraform/envs/dev/main.tf` — composes all modules for `dev`; wires IAM roles (Section 5.7); provisions SNS topic (`pixicred-dev-events`); 3 EventBridge rules; SQS event source mappings for all 4 consumer Lambdas; S3 bucket for Lambda packages (`pixicred-dev-lambda-packages`)
-- `infra/terraform/envs/dev/variables.tf`, `outputs.tf` — outputs `api_endpoint`
+- `infra/terraform/envs/dev/main.tf` — composes all modules for `dev`; wires IAM roles (Section 5.7); provisions SNS topic (`pixicred-dev-events`); 3 EventBridge rules; SQS event source mappings for all 4 consumer Lambdas; S3 bucket for Lambda packages (`pixicred-dev-lambda-packages`); includes `frontend` and `dns` modules
+- `infra/terraform/envs/dev/variables.tf`, `outputs.tf` — outputs `api_endpoint`, `frontend_url`
 - `infra/terraform/envs/prod/main.tf` — identical structure with `environment = "prod"`
 - `infra/terraform/envs/prod/variables.tf`, `outputs.tf`
 
@@ -115,6 +120,39 @@ Long-polls each queue with `WaitTimeSeconds = 20`. Round-robin across all four q
 
 No IAM role is shared across functions.
 
+### `infra/terraform/modules/frontend/` — S3 + CloudFront (FR-FE-16)
+
+The `frontend` Terraform module provisions:
+- `aws_s3_bucket` named `pixicred-{env}-frontend` — no public access; all objects private; served only via CloudFront OAC
+- `aws_cloudfront_distribution` — origin is the S3 bucket via OAC; HTTPS-only (`redirect-to-https`); price class `PriceClass_100` (US/EU); aliases `pixicred.com` and `www.pixicred.com` (prod only; dev uses the CloudFront subdomain directly); ACM certificate ARN passed as variable; default root object `index.html`
+- Custom error responses: `403 → /index.html (200)` and `404 → /index.html (200)` — required for Angular SPA client-side routing
+- `aws_s3_bucket_policy` granting `s3:GetObject` to the CloudFront OAC principal only
+
+Frontend assets are uploaded by the CI/CD pipeline (see Phase 8 spec), not by Terraform. Terraform only provisions the infrastructure.
+
+### `infra/terraform/modules/dns/` — Route 53 records
+
+Uses pre-existing hosted zone `Z0511624US25VOVRIJF3` (`pixicred.com.`):
+
+| Record | Type | Alias target |
+|---|---|---|
+| `pixicred.com` | A (alias) | CloudFront distribution |
+| `www.pixicred.com` | A (alias) | CloudFront distribution |
+| `api.pixicred.com` | A (alias) | API Gateway regional custom domain |
+
+All three are `aws_route53_record` resources with `alias` blocks. The `evaluate_target_health = false` for CloudFront; `true` for API Gateway.
+
+### API Gateway custom domain (`api.pixicred.com`)
+
+In `infra/terraform/modules/api-gateway/main.tf`:
+- `aws_apigatewayv2_domain_name` — `domain_name = "api.pixicred.com"`, ACM cert ARN passed as variable
+- `aws_apigatewayv2_api_mapping` — maps the `$default` stage to the custom domain
+- Output `domain_name_target` and `domain_name_hosted_zone_id` (from `aws_apigatewayv2_domain_name.domain_name_configuration`) for use by the `dns` module
+
+### JWT validation in account-scoped API Lambda handlers
+
+All Lambda handlers for routes marked `[JWT required]` in the route table must call `validateBearerToken(event.headers?.authorization, pathParams.accountId, process.env.JWT_SECRET!)` from `src/lib/jwt.ts` before invoking the service layer. On `PixiCredError('UNAUTHORIZED')` return 401; on `FORBIDDEN` return 403. This is the deployed-Lambda equivalent of the middleware in `local/api-server.ts`.
+
 ### EventBridge rules
 
 | Rule name | Schedule (UTC) | Target | Payload |
@@ -170,12 +208,16 @@ terraform -chdir=infra/terraform/envs/prod validate
 - [ ] `scripts/build.sh` bundles all entry points and exits 0
 - [ ] `local/api-server.ts` serves all routes; JWT validation correctly enforced on account-scoped routes
 - [ ] `local/worker.ts` polls all 4 MiniStack queues; notification queue correctly unwraps SNS envelope
-- [ ] All Terraform modules pass `terraform validate`
+- [ ] All Terraform modules pass `terraform validate` (including `frontend` and `dns`)
 - [ ] `infra/terraform/envs/dev` and `prod` pass `terraform validate`
 - [ ] RDS module has `iam_database_authentication_enabled = true`
 - [ ] 3 EventBridge rules provisioned with correct cron expressions
 - [ ] All 4 SQS consumer Lambdas have event source mappings
 - [ ] All Lambda IAM roles match PROJECT.md Section 5.7 — no shared roles; service role has `rds-db:connect` not `rds-data:*`
+- [ ] `frontend` module: S3 bucket + CloudFront distribution with SPA 403/404→200 error responses; OAC-only bucket policy
+- [ ] `dns` module: 3 Route 53 A-alias records (apex, www → CloudFront; api → API Gateway custom domain)
+- [ ] API Gateway custom domain `api.pixicred.com` wired with ACM cert; stage mapping in place
+- [ ] All account-scoped Lambda handlers call `validateBearerToken` from `src/lib/jwt.ts` before service invocation (FR-AUTH-04)
 - [ ] End-to-end HTTP integration tests pass against local stack
 - [ ] Spec status updated to ✅ Implemented
 - [ ] IMPLEMENTATION_PLAN.md Phase 7 row marked complete

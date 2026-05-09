@@ -247,6 +247,6 @@ test('full scheduled flow: EventBridge enqueues weekly SQS message, handler runs
 - [ ] All service unit tests pass against Testcontainers Postgres
 - [ ] All handler integration tests pass; full scheduled flow test passes against MiniStack
 - [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/01-data-model.md` updated to document the two added query functions
+- [ ] `specs/01b-data-model-queries.md` updated to document the two added query functions
 - [ ] `specs/02-service-layer-foundation.md` stubs for all four statement actions marked replaced
 - [ ] IMPLEMENTATION_PLAN.md Phase 5 row marked complete

@@ -26,6 +26,7 @@ NFR-09 mandates a service layer that is the single point of entry for all busine
 - `src/service/statement.service.ts` — stubs: `generateStatement`, `generateAllStatements`, `getStatements`, `getStatement`
 - `src/service/notification.service.ts` — stubs: `getNotificationPreferences`, `updateNotificationPreferences`, `sendDeclineEmail`, `sendApprovalEmail`, `sendTransactionEmail`, `sendStatementEmail`, `sendPaymentDueReminderEmail`, `sendAutoCloseEmail`, `sendUserCloseEmail`
 - `src/service/billing-lifecycle.service.ts` — stub: `runBillingLifecycle`
+- `src/service/auth.service.ts` — stubs: `registerPortalAccount`, `loginPortalAccount`
 
 ### Service handler (Lambda entry point)
 - `src/handlers/service/service.handler.ts` — Lambda handler that receives a `ServiceAction`, routes to the correct service function, returns the result, logs every invocation
@@ -69,6 +70,11 @@ export type ErrorCode =
   | 'PAYMENT_EXCEEDS_BALANCE'
   | 'STATEMENT_NOT_FOUND'
   | 'ACCOUNT_ALREADY_CLOSED'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'INVALID_CREDENTIALS'
+  | 'PORTAL_ACCOUNT_EXISTS'
+  | 'PORTAL_ACCOUNT_NOT_ELIGIBLE'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL_ERROR';
 
@@ -80,17 +86,22 @@ export class PixiCredError extends Error {
 }
 
 // HTTP status mapping per PROJECT.md Section 8.4:
-// VALIDATION_ERROR        → 400
-// DUPLICATE_APPLICATION   → 409
-// APPLICATION_NOT_FOUND   → 404
-// ACCOUNT_NOT_FOUND       → 404
-// ACCOUNT_NOT_ACTIVE      → 422
-// INSUFFICIENT_CREDIT     → 422
-// PAYMENT_EXCEEDS_BALANCE → 422
-// STATEMENT_NOT_FOUND     → 404
-// ACCOUNT_ALREADY_CLOSED  → 422
-// NOT_IMPLEMENTED         → 501
-// INTERNAL_ERROR          → 500
+// VALIDATION_ERROR             → 400
+// DUPLICATE_APPLICATION        → 409
+// APPLICATION_NOT_FOUND        → 404
+// ACCOUNT_NOT_FOUND            → 404
+// ACCOUNT_NOT_ACTIVE           → 422
+// INSUFFICIENT_CREDIT          → 422
+// PAYMENT_EXCEEDS_BALANCE      → 422
+// STATEMENT_NOT_FOUND          → 404
+// ACCOUNT_ALREADY_CLOSED       → 422
+// UNAUTHORIZED                 → 401
+// FORBIDDEN                    → 403
+// INVALID_CREDENTIALS          → 401
+// PORTAL_ACCOUNT_EXISTS        → 409
+// PORTAL_ACCOUNT_NOT_ELIGIBLE  → 422
+// NOT_IMPLEMENTED              → 501
+// INTERNAL_ERROR               → 500
 export function toHttpStatus(code: ErrorCode): number { ... }
 ```
 
@@ -224,7 +235,9 @@ export type ServiceAction =
   | { action: 'sendPaymentDueReminderEmail';   payload: { accountId: string } }
   | { action: 'sendAutoCloseEmail';            payload: { accountId: string } }
   | { action: 'sendUserCloseEmail';            payload: { accountId: string } }
-  | { action: 'runBillingLifecycle';           payload: { lookaheadDays: number } };
+  | { action: 'runBillingLifecycle';           payload: { lookaheadDays: number } }
+  | { action: 'registerPortalAccount';        payload: { email: string; accountId: string; password: string } }
+  | { action: 'loginPortalAccount';           payload: { email: string; password: string } };
 ```
 
 ---
@@ -255,6 +268,8 @@ test('dispatch throws NOT_IMPLEMENTED for sendPaymentDueReminderEmail stub')
 test('dispatch throws NOT_IMPLEMENTED for sendAutoCloseEmail stub')
 test('dispatch throws NOT_IMPLEMENTED for sendUserCloseEmail stub')
 test('dispatch throws NOT_IMPLEMENTED for runBillingLifecycle stub')
+test('dispatch throws NOT_IMPLEMENTED for registerPortalAccount stub')
+test('dispatch throws NOT_IMPLEMENTED for loginPortalAccount stub')
 test('dispatch handler wraps unknown errors as INTERNAL_ERROR PixiCredError')
 test('dispatch handler re-throws PixiCredError as-is without wrapping')
 ```
@@ -282,6 +297,11 @@ test('toHttpStatus returns 422 for INSUFFICIENT_CREDIT')
 test('toHttpStatus returns 422 for PAYMENT_EXCEEDS_BALANCE')
 test('toHttpStatus returns 404 for STATEMENT_NOT_FOUND')
 test('toHttpStatus returns 422 for ACCOUNT_ALREADY_CLOSED')
+test('toHttpStatus returns 401 for UNAUTHORIZED')
+test('toHttpStatus returns 403 for FORBIDDEN')
+test('toHttpStatus returns 401 for INVALID_CREDENTIALS')
+test('toHttpStatus returns 409 for PORTAL_ACCOUNT_EXISTS')
+test('toHttpStatus returns 422 for PORTAL_ACCOUNT_NOT_ELIGIBLE')
 test('toHttpStatus returns 501 for NOT_IMPLEMENTED')
 test('toHttpStatus returns 500 for INTERNAL_ERROR')
 ```
@@ -300,11 +320,11 @@ test('assertUuid error message includes the field name')
 ## Done When
 - [ ] All six service module skeletons compile under strict TypeScript with no implicit `any`
 - [ ] All stubs throw `PixiCredError('NOT_IMPLEMENTED', ...)` — confirmed by routing tests
-- [ ] `ServiceAction` discriminated union covers all 22 actions from PROJECT.md Section 6.2
+- [ ] `ServiceAction` discriminated union covers all 24 actions from PROJECT.md Section 6.2 (including `registerPortalAccount` and `loginPortalAccount`)
 - [ ] `service.handler.ts` dispatcher has a case for every `ServiceAction.action` value
 - [ ] `service.client.ts` dual-mode invocation confirmed by unit tests (Lambda mock + fetch mock)
 - [ ] `local/service-server.ts` starts on port 3001 and returns `{ data }` / `{ error }` envelope
-- [ ] `src/lib/errors.ts` — all 11 error codes present; `toHttpStatus` mapping verified by test
+- [ ] `src/lib/errors.ts` — all 16 error codes present; `toHttpStatus` mapping verified by test
 - [ ] `src/lib/validate.ts` — UUID guard confirmed by test
 - [ ] `src/lib/logger.ts` — emits valid JSON to stdout (verified by capturing stdout in test)
 - [ ] All tests in `tests/service/` and `tests/lib/` pass

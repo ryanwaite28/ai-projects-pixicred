@@ -47,7 +47,7 @@ getStatements(accountId: string): Observable<Statement[]>
 getStatement(accountId: string, statementId: string): Observable<StatementDetail>
 // GET /accounts/:accountId/statements/:statementId
 
-generateStatement(accountId: string, idempotencyKey: string): Observable<Statement>
+generateStatement(accountId: string): Observable<Statement>
 // POST /accounts/:accountId/statements
 ```
 
@@ -83,7 +83,7 @@ All methods use Angular `HttpClient`. Auth interceptor injects `Authorization: B
 - Table/list: period (start–end dates), opening balance, closing balance, minimum payment due, due date
 - Clicking a row: loads detail via `getStatement(accountId, statementId)`; displays inline below or as expanded panel
   - Detail shows: all statement fields + transaction breakdown table (type, merchant, amount, date)
-- "Generate Statement" button: generates `idempotencyKey`; calls `generateStatement(accountId, key)`; on success appends new statement to top of list
+- "Generate Statement" button: calls `generateStatement(accountId)`; on success appends new statement to top of list (backend deduplicates via unique index on period — no client-side idempotency key needed)
 - Loading and error states for each async operation
 
 ---

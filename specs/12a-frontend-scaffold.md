@@ -1,5 +1,5 @@
 # Spec: Frontend — Scaffold & Auth Shell (Phase 10a)
-**FR references**: FR-FE-13, FR-FE-14, FR-FE-15, FR-FE-17, FR-AUTH-02, FR-AUTH-03
+**FR references**: FR-FE-05, FR-FE-06, FR-FE-13, FR-FE-14, FR-FE-15, FR-FE-17, FR-AUTH-02, FR-AUTH-03
 **Status**: 🔄 In Progress
 **Prerequisite**: Phase 9 (`POST /auth/register` and `POST /auth/login` live)
 

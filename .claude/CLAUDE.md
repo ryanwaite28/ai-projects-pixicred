@@ -1,7 +1,86 @@
 # PixiCred — CLAUDE.md
 > AI assistant configuration for the PixiCred credit card lending platform.
-> **At the start of every session**: read this file, acknowledge the project rules, then read IMPLEMENTATION_PLAN.md to understand current project phase and progress, then read the relevant sections of PROJECT.md and the governing spec in `specs/` before writing any code.
+> **At the start of every session**: (1) initialize the session log per the Session Tracking section below, (2) read this file and acknowledge the project rules, (3) read IMPLEMENTATION_PLAN.md to understand current phase and progress, (4) read the relevant sections of PROJECT.md and the governing spec in `specs/` before writing any code.
 > Before writing implementation code, produce a spec using the Section 12.6 format. Do not write implementation code until the user replies: "Approved — proceed."
+
+---
+
+## Session Tracking — Mandatory
+
+**Every Claude Code session must be logged.** Session files are the permanent record of decisions, changes, and reasoning across all sessions. Do this before any other work in the session.
+
+### Session Initialization (first action of every session)
+
+Run these steps using the Bash and Write tools:
+
+```bash
+# Step 1: generate session ID and timestamp
+SESSION_UUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+SESSION_TS=$(date -u +"%Y%m%d-%H%M%S")
+SESSION_FILE=".claude/sessions/${SESSION_TS}.${SESSION_UUID}.claude-session.md"
+echo "SESSION_FILE=${SESSION_FILE}"
+```
+
+```bash
+# Step 2: get current git branch for context
+git branch --show-current
+```
+
+Then create the session file using the Write tool with this template:
+
+```markdown
+# PixiCred — Claude Code Session
+**Session ID**: `{SESSION_UUID}`
+**Started**: {YYYY-MM-DD HH:MM:SS UTC}
+**Branch**: {git branch}
+**Project**: PixiCred / ryanwaite28/ai-projects-pixicred
+
+---
+
+## Session Log
+
+```
+
+Store `SESSION_FILE` as a named value in working memory for the entire session. **Never regenerate the session UUID mid-session.**
+
+### Session Updates (after each turn)
+
+After producing each response, append the turn to `SESSION_FILE` using `/session-log` or by directly calling the Edit/Write tool. Turn format:
+
+```markdown
+### Turn N — HH:MM:SS UTC
+
+**User:**
+{exact verbatim user message — copy word for word, no paraphrasing}
+
+**Thinking:**
+{genuine reasoning for this turn: what the request required, what approaches were considered and why, what constraints or tradeoffs shaped the decision, what spec rules or prior context were applied}
+
+**Assistant:**
+{factual summary: decisions made, files changed, commands run, outcomes — not prose}
+
+---
+
+```
+
+- **User**: verbatim always — exact words, no summarizing.
+- **Thinking**: the deliberation record — WHY, not WHAT. What was weighed, what was ruled out, what drove the approach.
+- **Assistant**: outcomes only — file paths, function names, what changed.
+
+### Resuming After Context Compaction
+
+If the session file path is no longer in memory after compaction:
+1. Run `ls -t .claude/sessions/*.claude-session.md | head -1` to find the active file
+2. Resume appending to that file
+3. Note "(resumed after context compaction)" in the next Assistant entry
+
+### Rules
+
+- **Do not skip initialization.** This is the first action of every session, before reading IMPLEMENTATION_PLAN.md.
+- **One session file per session.** Never create a second file mid-session.
+- **Append only.** Never overwrite or truncate a session file.
+- **Session files are committed to git** — they are project artifacts, not temp files.
+- The `/session-log` command (`.claude/commands/session-log.md`) is available for manual appends.
 
 ---
 
@@ -94,6 +173,47 @@ When in doubt: if the validation references domain state (the account, the appli
 **Never skip steps 1–5** — not for "obvious" fixes, not for single-line changes. The spec IS the approval gate. "Yes sounds good" is not an approval. Only **"Approved — proceed."** unlocks implementation.
 
 **Never skip steps 8–10** — specs and IMPLEMENTATION_PLAN.md must describe current reality, not history. A wrong spec is worse than no spec. An out-of-date progress tracker misleads every future session.
+
+---
+
+## Phase Kickoff Validation Protocol
+
+> Run this checklist **before writing any implementation code for a phase** — even after "Approved — proceed." is received. A spec that passes the Mandatory Process approval gate may still have cross-phase inconsistencies. This protocol catches them before they become refactors.
+
+Apply the following five checks to the governing spec for the phase about to be implemented. Accept each check as-is if it passes; only flag genuine gaps.
+
+### Check 1 — FR References Header Completeness
+Every `FR-*` whose behavior is implemented in the spec must appear in the spec's **FR references** header line. Cross-cutting FRs (e.g. FR-EMAIL-05 "all emails via SES", FR-NFR-09 "service layer supremacy") are satisfied architecturally and need not be repeated in every spec — but FRs whose specific behavior (function, screen, template, endpoint) is defined for the first time in this phase must be listed.
+
+**Action**: Read the spec's "Behavior" section. For each distinct feature or function described, verify it maps to an FR-* in PROJECT.md Section 2, and that FR is in the header. Add missing ones; do not add FRs that are only incidentally related.
+
+### Check 2 — Prerequisite Phase Completeness
+The spec's **Prerequisite** line must list every phase whose artifacts (functions, types, files) the current phase directly imports or calls.
+
+**Action**: For every function call, type, or file import in the spec's Behavior section, identify which phase defines it. If that phase is not listed as a prerequisite and is not an earlier phase of the same spec family (e.g. 01a → 01b), add it. Never start a phase whose prerequisites are not marked ✅ complete in IMPLEMENTATION_PLAN.md.
+
+### Check 3 — Cross-Spec Function Call Validity
+Every function called in the spec's Behavior section (service functions, query functions, utility functions, email builders) must be defined in an already-approved spec for an earlier phase. "Defined" means the function appears in a New/Modified Files entry or Behavior section of that earlier spec, not just named in a passing reference.
+
+**Action**: Compile a call list. Cross-reference against the governing specs for all earlier phases. Flag any call whose definition cannot be located in a prior spec. Do not proceed if a function is called but its spec ownership is ambiguous.
+
+### Check 4 — File Ownership Uniqueness
+No two specs may claim to **create** the same file in their New/Modified Files sections. One spec may **modify** a file created by an earlier spec (must explicitly say "modified from Phase N"), but two specs cannot both claim initial ownership of the same file path.
+
+**Action**: Scan the New/Modified Files section of the current spec. For each file listed without "modified from Phase N" language, confirm it does not appear as a primary creation in any earlier spec. If it does, update the current spec to say "modified: ..." and identify which phase is the canonical owner.
+
+### Check 5 — Done When → FR Traceability
+Every FR listed in the FR References header must have at least one corresponding Done When checkbox that proves the FR was implemented and tested — not just mentioned.
+
+**Action**: For each FR-* in the header, find its matching checkbox(es) in Done When. If an FR has no corresponding checkbox, add one. The checkbox must reference a concrete, verifiable outcome (a test name, a field that appears in a response, a UI behavior) — not a generic "feature works."
+
+---
+
+### When Validation Fails
+If any check fails: fix the spec before implementing. Do not implement against a spec with known gaps — a misaligned spec produces misaligned code that requires a refactor. Update the spec, note what changed, and re-read the corrected version before writing code.
+
+### When All Checks Pass
+Document the validation outcome in a single line at the top of your implementation work session notes (not in the spec itself): `✅ Phase N kickoff validation passed — [date]`. Proceed to implementation.
 
 ---
 

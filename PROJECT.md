@@ -969,6 +969,7 @@ CREATE INDEX idx_portal_accounts_email ON portal_accounts(email);
 | `FORBIDDEN` | 403 | Valid JWT but accountId mismatch |
 | `INVALID_CREDENTIALS` | 401 | Wrong email or password on login |
 | `PORTAL_ACCOUNT_EXISTS` | 409 | Portal account already registered for this accountId |
+| `PORTAL_ACCOUNT_NOT_ELIGIBLE` | 422 | Account's application is not APPROVED; cannot register portal access |
 | `INTERNAL_ERROR` | 500 | Unhandled server error |
 
 ---

@@ -236,5 +236,5 @@ test('PATCH /accounts/:accountId/notifications returns 404 ACCOUNT_NOT_FOUND for
 - [ ] `specs/09-billing-lifecycle.md` complete before this phase is built
 - [ ] Spec status updated to ✅ Implemented
 - [ ] `specs/02-service-layer-foundation.md` stubs for all eleven notification/preference actions marked replaced
-- [ ] `specs/01-data-model.md` updated to document the two added query functions
+- [ ] `specs/01b-data-model-queries.md` updated to document the two added query functions
 - [ ] IMPLEMENTATION_PLAN.md Phase 6 row marked complete
