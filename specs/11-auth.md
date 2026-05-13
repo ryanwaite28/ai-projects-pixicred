@@ -1,6 +1,7 @@
 # Spec: Backend Portal Authentication (Phase 9)
-**FR references**: FR-AUTH-01, FR-AUTH-02, FR-AUTH-03, FR-AUTH-04, FR-AUTH-05, FR-AUTH-06, FR-AUTH-07, FR-AUTH-08
-**Status**: 🔄 In Progress
+**FR references**: FR-AUTH-01, FR-AUTH-02, FR-AUTH-03, FR-AUTH-04, FR-AUTH-05, FR-AUTH-06, FR-AUTH-08
+> **FR-AUTH-07** (approval email includes accountId + setup link) — already satisfied in Phase 6 (`src/emails/templates/approval.hbs` and `src/emails/approval.template.ts`). No new work required.
+**Status**: ✅ Implemented
 **Prerequisite**: Phase 8 (Secrets Manager live with `JWT_SECRET`; service layer complete)
 
 ---
@@ -19,10 +20,10 @@ FR-AUTH-01 through FR-AUTH-08 require a secure, stateless authentication mechani
 
 ## New / Modified Files
 
-- `prisma/schema.prisma` — add `PortalAccount` model (new migration: `add_portal_accounts`)
-- `src/db/queries/auth.queries.ts` — query functions for `portal_accounts`
-- `src/service/auth.service.ts` — `registerPortalAccount` and `loginPortalAccount`
-- `src/handlers/api/auth.handler.ts` — `POST /auth/register` and `POST /auth/login`
+- `prisma/schema.prisma` — modified from Phase 1a: add `PortalAccount` model (new migration: `add_portal_accounts`)
+- `src/db/queries/auth.queries.ts` — new: query functions for `portal_accounts`
+- `src/service/auth.service.ts` — modified from Phase 1c stub (specs/02-service-layer-foundation.md): implement `registerPortalAccount` and `loginPortalAccount`
+- `src/handlers/api/auth.handler.ts` — modified from Phase 7 stub (specs/10a-api-wiring.md): replace NOT_IMPLEMENTED stubs with full `POST /auth/register` and `POST /auth/login`
 - `src/lib/jwt.ts` — shared `validateBearerToken(authHeader, expectedAccountId)` utility used by all account-scoped Lambda handlers (FR-AUTH-04)
 - `tests/service/auth.service.test.ts`
 - `tests/db/auth.queries.test.ts`
@@ -87,10 +88,9 @@ Input: `{ email: string; password: string }`
 Steps:
 1. `getPortalAccountByEmail(prisma, email)` — throw `INVALID_CREDENTIALS` (401) if null
 2. `bcrypt.compare(password, passwordHash)` — throw `INVALID_CREDENTIALS` (401) if false
-3. Sign JWT: `jwt.sign({ accountId, email }, JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' })`
-4. Return `{ token, accountId }`
-
-`JWT_SECRET` is read from `process.env.JWT_SECRET` (injected from Secrets Manager in non-local environments; set directly in `.env` locally).
+3. `const { JWT_SECRET } = await getConfig()` — resolves instantly on warm Lambda (singleton cached by Phase 8 config.ts)
+4. Sign JWT: `jwt.sign({ accountId, email }, JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' })`
+5. Return `{ token, accountId }`
 
 ### `src/lib/jwt.ts` — shared JWT validation utility (FR-AUTH-04)
 
@@ -119,7 +119,7 @@ export function validateBearerToken(
 }
 ```
 
-Lambda handlers extract the `Authorization` header from `event.headers`, call `validateBearerToken`, and return 401/403 on `PixiCredError` before invoking the service layer. `JWT_SECRET` is read from `process.env.JWT_SECRET`, which is populated from Secrets Manager at Lambda cold start via `src/lib/config.ts` (see Phase 8 spec).
+Lambda handlers extract the `Authorization` header from `event.headers`, call `await getConfig()` to retrieve `JWT_SECRET`, pass it to `validateBearerToken`, and return 401/403 on `PixiCredError` before invoking the service layer. `getConfig()` caches the Secrets Manager result for the Lambda warm lifetime (see Phase 8 spec).
 
 ### `src/handlers/api/auth.handler.ts`
 
@@ -176,16 +176,16 @@ test('loginPortalAccount JWT payload contains exp approximately 24h from now')
 ---
 
 ## Done When
-- [ ] `prisma migrate dev` produces `add_portal_accounts` migration and exits 0
-- [ ] `auth.queries.ts` compiles under strict mode
-- [ ] All `tests/db/auth.queries.test.ts` pass against Testcontainers Postgres
-- [ ] All `tests/service/auth.service.test.ts` pass
-- [ ] `registerPortalAccount` never stores plaintext password — verified by test
-- [ ] `loginPortalAccount` returns `INVALID_CREDENTIALS` for both missing-email and wrong-password cases — verified by separate tests (timing-safe; both paths return the same error code)
-- [ ] `auth.handler.ts` is a thin dispatch — no business logic; shape validation only
-- [ ] `POST /auth/register` and `POST /auth/login` work end-to-end via `local/api-server.ts`
-- [ ] `src/lib/jwt.ts` — `validateBearerToken` correctly throws `UNAUTHORIZED`/`FORBIDDEN`; all 6 test cases pass
-- [ ] All account-scoped Lambda handlers call `validateBearerToken` before invoking service layer (FR-AUTH-04)
-- [ ] `JWT_SECRET` sourced from `process.env.JWT_SECRET` — populated from Secrets Manager by `src/lib/config.ts` at Lambda cold start
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 9 row marked complete
+- [x] `prisma migrate dev` produces `add_portal_accounts` migration and exits 0
+- [x] `auth.queries.ts` compiles under strict mode
+- [x] All `tests/db/auth.queries.test.ts` pass against Testcontainers Postgres
+- [x] All `tests/service/auth.service.test.ts` pass
+- [x] `registerPortalAccount` never stores plaintext password — verified by test
+- [x] `loginPortalAccount` returns `INVALID_CREDENTIALS` for both missing-email and wrong-password cases — verified by separate tests (timing-safe; both paths return the same error code)
+- [x] `auth.handler.ts` is a thin dispatch — no business logic; shape validation only
+- [x] `POST /auth/register` and `POST /auth/login` work end-to-end via `local/api-server.ts`
+- [x] `src/lib/jwt.ts` — `validateBearerToken` correctly throws `UNAUTHORIZED`/`FORBIDDEN`; all 6 test cases pass
+- [x] All account-scoped Lambda handlers call `validateBearerToken` before invoking service layer (FR-AUTH-04)
+- [x] `JWT_SECRET` retrieved via `await getConfig()` in `loginPortalAccount` and account-scoped Lambda handlers — never read from `process.env` directly
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 9 row marked complete

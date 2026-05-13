@@ -72,3 +72,88 @@ export interface NotificationPreference {
   paymentRemindersEnabled: boolean;
   updatedAt:               Date;
 }
+
+// ─── Infrastructure client interfaces ────────────────────────────────────────
+
+export interface SesClient {
+  sendEmail(input: { to: string; subject: string; htmlBody: string; textBody: string }): Promise<void>;
+}
+
+export interface SnsClient {
+  publishEvent(topicArn: string, eventType: string, payload: unknown): Promise<void>;
+}
+
+export interface SqsClient {
+  sendMessage(queueUrl: string, body: unknown): Promise<void>;
+}
+
+export interface ServiceClients {
+  sesClient: SesClient;
+  snsClient: SnsClient;
+  sqsClient: SqsClient;
+}
+
+// ─── Service action payload types ────────────────────────────────────────────
+
+export interface SubmitApplicationInput {
+  email:        string;
+  firstName:    string;
+  lastName:     string;
+  dateOfBirth:  string;
+  annualIncome: number;
+  mockSsn:      string;
+}
+
+export interface PostChargeInput {
+  accountId:     string;
+  merchantName?: string;
+  amount:        number;
+  idempotencyKey: string;
+}
+
+export interface PostPaymentInput {
+  accountId:      string;
+  amount:         number | 'FULL';
+  idempotencyKey: string;
+}
+
+export interface GetTransactionsInput {
+  accountId: string;
+  cursor?:   string;
+  limit?:    number;
+}
+
+export interface UpdateNotificationPrefsInput {
+  accountId:               string;
+  transactionsEnabled?:    boolean;
+  statementsEnabled?:      boolean;
+  paymentRemindersEnabled?: boolean;
+}
+
+// ─── ServiceAction discriminated union ───────────────────────────────────────
+
+export type ServiceAction =
+  | { action: 'submitApplication';             payload: SubmitApplicationInput }
+  | { action: 'getApplication';                payload: { applicationId: string } }
+  | { action: 'runCreditCheck';                payload: { applicationId: string } }
+  | { action: 'getAccount';                    payload: { accountId: string } }
+  | { action: 'closeAccount';                  payload: { accountId: string; reason: CloseReason } }
+  | { action: 'postCharge';                    payload: PostChargeInput }
+  | { action: 'postPayment';                   payload: PostPaymentInput }
+  | { action: 'getTransactions';               payload: GetTransactionsInput }
+  | { action: 'generateStatement';             payload: { accountId: string } }
+  | { action: 'generateAllStatements';         payload: { period: 'weekly' | 'monthly' } }
+  | { action: 'getStatements';                 payload: { accountId: string } }
+  | { action: 'getStatement';                  payload: { accountId: string; statementId: string } }
+  | { action: 'getNotificationPreferences';    payload: { accountId: string } }
+  | { action: 'updateNotificationPreferences'; payload: UpdateNotificationPrefsInput }
+  | { action: 'sendDeclineEmail';              payload: { applicationId: string } }
+  | { action: 'sendApprovalEmail';             payload: { applicationId: string } }
+  | { action: 'sendTransactionEmail';          payload: { transactionId: string } }
+  | { action: 'sendStatementEmail';            payload: { statementId: string } }
+  | { action: 'sendPaymentDueReminderEmail';   payload: { accountId: string } }
+  | { action: 'sendAutoCloseEmail';            payload: { accountId: string } }
+  | { action: 'sendUserCloseEmail';            payload: { accountId: string } }
+  | { action: 'runBillingLifecycle';           payload: { lookaheadDays: number } }
+  | { action: 'registerPortalAccount';         payload: { email: string; accountId: string; password: string } }
+  | { action: 'loginPortalAccount';            payload: { email: string; password: string } };

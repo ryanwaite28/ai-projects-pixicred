@@ -1,6 +1,6 @@
 # Spec: Statements
 **FR references**: FR-STMT-01, FR-STMT-02, FR-STMT-03, FR-STMT-04, FR-STMT-05, FR-STMT-06, FR-STMT-07, FR-STMT-08, FR-EMAIL-04
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -236,17 +236,17 @@ test('full scheduled flow: EventBridge enqueues weekly SQS message, handler runs
 ---
 
 ## Done When
-- [ ] `generateStatement` on-demand period uses prior statement's `periodEnd` or `account.createdAt`
-- [ ] `openingBalance = closingBalance + totalPayments − totalCharges`
-- [ ] `dueDate` is exactly 21 days after `periodEnd`
-- [ ] Idempotency: re-running with same period returns existing statement, no new DB row, no second SNS event
-- [ ] `generateAllStatements` includes `ACTIVE` and `SUSPENDED` accounts; skips `CLOSED`
-- [ ] `getTransactionsByAccountAndPeriod` upper bound is exclusive
-- [ ] `getStatement` populates `transactions[]`; `getStatements` does not
-- [ ] Statement email includes all fields required by FR-EMAIL-04
-- [ ] All service unit tests pass against Testcontainers Postgres
-- [ ] All handler integration tests pass; full scheduled flow test passes against MiniStack
-- [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/01b-data-model-queries.md` updated to document the two added query functions
-- [ ] `specs/02-service-layer-foundation.md` stubs for all four statement actions marked replaced
-- [ ] IMPLEMENTATION_PLAN.md Phase 5 row marked complete
+- [x] `generateStatement` on-demand period uses prior statement's `periodEnd` or `account.createdAt`
+- [x] `openingBalance = closingBalance + totalPayments − totalCharges`
+- [x] `dueDate` is exactly 21 days after `periodEnd`
+- [x] Idempotency: re-running with same period returns existing statement, no new DB row, no second SNS event
+- [x] `generateAllStatements` includes `ACTIVE` and `SUSPENDED` accounts; skips `CLOSED`
+- [x] `getTransactionsByAccountAndPeriod` upper bound is exclusive
+- [x] `getStatement` populates `transactions[]`; `getStatements` does not
+- [x] Statement email includes all fields required by FR-EMAIL-04
+- [x] All service unit tests pass against Testcontainers Postgres
+- [x] All handler integration tests pass; full scheduled flow test passes against MiniStack
+- [x] Spec status updated to ✅ Implemented
+- [x] `specs/01b-data-model-queries.md` updated to document the two added query functions
+- [x] `specs/02-service-layer-foundation.md` stubs for all four statement actions marked replaced
+- [x] IMPLEMENTATION_PLAN.md Phase 5 row marked complete

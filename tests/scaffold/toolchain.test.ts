@@ -13,9 +13,9 @@ describe('TypeScript toolchain', () => {
     expect(existsSync('node_modules/.prisma/client')).toBe(true);
   });
 
-  test('esbuild bundles src/db/client.ts without error and produces dist/lambdas/db-client/index.js', () => {
+  test('esbuild bundles all Lambda entry points without error', () => {
     expect(() => execSync('npm run build', { stdio: 'pipe' })).not.toThrow();
-    expect(existsSync('dist/lambdas/db-client/index.js')).toBe(true);
+    expect(existsSync('dist/lambdas/api-applications/index.js')).toBe(true);
   });
 
   test('ESLint exits 0 on src/db/client.ts', () => {

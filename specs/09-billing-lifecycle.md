@@ -1,6 +1,6 @@
 # Spec: Billing Lifecycle Jobs
 **FR references**: FR-BILL-01, FR-BILL-02, FR-BILL-03, FR-BILL-04, FR-BILL-05, FR-BILL-06, FR-BILL-07, FR-BILL-08, FR-EMAIL-07, FR-EMAIL-08
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -202,21 +202,21 @@ test('POST /admin/billing-lifecycle returns 202 immediately — does not wait fo
 ---
 
 ## Done When
-- [ ] Auto-close sweep runs before reminder sweep in the same function execution — verified by ordering test
-- [ ] Accounts closed in auto-close sweep are excluded from reminder sweep in the same run
-- [ ] `reminderSentDate` stamped before SNS publish — not after
-- [ ] Auto-close idempotency: already-`CLOSED` accounts excluded by query status filter (FR-BILL-08)
-- [ ] Reminder idempotency: `reminder_sent_date = today` excludes re-reminding on same day (FR-BILL-07)
-- [ ] `runBillingLifecycle` calls `closeAccount` from `account.service.ts` directly — no duplicate close logic
-- [ ] `computeMinimumPayment` imported from `payment.service.ts` in reminder template — not re-implemented
-- [ ] Payment-due reminder email includes all fields from FR-EMAIL-07 including auto-close warning
-- [ ] Auto-close email includes all fields from FR-EMAIL-08 including outstanding balance
-- [ ] Admin handler returns `202` immediately without waiting for the job to complete
-- [ ] Admin handler enqueues to SQS — does not invoke service Lambda directly
-- [ ] All service unit tests pass against Testcontainers Postgres
-- [ ] All handler and email template tests pass
-- [ ] Both scheduled and on-demand flow integration tests pass against MiniStack
-- [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/02-service-layer-foundation.md` stub for `runBillingLifecycle` marked replaced
-- [ ] `specs/08-notifications.md` dependency on this spec's templates confirmed satisfied
-- [ ] IMPLEMENTATION_PLAN.md Phase 4.5 row marked complete
+- [x] Auto-close sweep runs before reminder sweep in the same function execution — verified by ordering test
+- [x] Accounts closed in auto-close sweep are excluded from reminder sweep in the same run
+- [x] `reminderSentDate` stamped before SNS publish — not after
+- [x] Auto-close idempotency: already-`CLOSED` accounts excluded by query status filter (FR-BILL-08)
+- [x] Reminder idempotency: `reminder_sent_date = today` excludes re-reminding on same day (FR-BILL-07)
+- [x] `runBillingLifecycle` calls `closeAccount` from `account.service.ts` directly — no duplicate close logic
+- [x] `computeMinimumPayment` imported from `payment.service.ts` in reminder template — not re-implemented
+- [x] Payment-due reminder email includes all fields from FR-EMAIL-07 including auto-close warning
+- [x] Auto-close email includes all fields from FR-EMAIL-08 including outstanding balance
+- [x] Admin handler returns `202` immediately without waiting for the job to complete
+- [x] Admin handler enqueues to SQS — does not invoke service Lambda directly
+- [x] All service unit tests pass against Testcontainers Postgres
+- [x] All handler and email template tests pass
+- [x] Both scheduled and on-demand flow integration tests pass against MiniStack
+- [x] Spec status updated to ✅ Implemented
+- [x] `specs/02-service-layer-foundation.md` stub for `runBillingLifecycle` marked replaced
+- [x] `specs/08-notifications.md` dependency on this spec's templates confirmed satisfied
+- [x] IMPLEMENTATION_PLAN.md Phase 4.5 row marked complete

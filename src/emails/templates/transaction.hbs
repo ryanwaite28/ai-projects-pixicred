@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transaction Posted to Your PixiCred Account</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #2c3e50;">Transaction Posted</h1>
+  <p>Dear Valued Customer,</p>
+  <p>
+    A charge has been posted to your PixiCred credit card account
+    (<strong>{{accountId}}</strong>).
+  </p>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Merchant</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{merchantName}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Amount</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{amount}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">New Balance</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${{newBalance}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; color: #666;">Available Credit</td>
+      <td style="padding: 8px;">${{availableCredit}}</td>
+    </tr>
+  </table>
+  <p>
+    If you did not authorize this transaction, please contact us immediately at
+    <a href="https://pixicred.com/support">pixicred.com/support</a>.
+  </p>
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>

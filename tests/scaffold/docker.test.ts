@@ -17,9 +17,9 @@ const SNS = new SNSClient({
 });
 
 describe('Docker stack — integration', () => {
-  test('Postgres container accepts TCP connection on port 5432', () =>
+  test('Postgres container accepts TCP connection on port 5433', () =>
     new Promise<void>((resolve, reject) => {
-      const socket = createConnection({ host: 'localhost', port: 5432 }, () => {
+      const socket = createConnection({ host: 'localhost', port: 5433 }, () => {
         socket.destroy();
         resolve();
       });
@@ -29,7 +29,7 @@ describe('Docker stack — integration', () => {
   test('Postgres database name is pixicred', async () => {
     const client = new PgClient({
       host: 'localhost',
-      port: 5432,
+      port: 5433,
       database: 'pixicred',
       user: 'pixicred',
       password: 'pixicred_local',

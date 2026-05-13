@@ -1,6 +1,6 @@
 # Spec: Transactions
 **FR references**: FR-TXN-01, FR-TXN-02, FR-TXN-03, FR-TXN-04, FR-TXN-05, FR-TXN-06, FR-TXN-07, FR-EMAIL-03
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -174,14 +174,14 @@ test('GET /accounts/:accountId/transactions returns 404 ACCOUNT_NOT_FOUND for un
 ---
 
 ## Done When
-- [ ] `postCharge` idempotency check runs first — before all domain validations
-- [ ] `postCharge` atomically inserts `Transaction` and updates balance in one DB transaction
-- [ ] `postCharge` publishes `TRANSACTION_POSTED` event after successful commit
-- [ ] Idempotent replay returns original transaction, produces zero DB writes, produces zero SNS publishes
-- [ ] `getTransactions` defaults to limit 20, clamps at 100, supports cursor pagination
-- [ ] Transaction email template includes all fields required by FR-EMAIL-03
-- [ ] All service unit tests pass against Testcontainers Postgres
-- [ ] All handler integration tests pass
-- [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/02-service-layer-foundation.md` stubs for `postCharge` and `getTransactions` marked replaced
-- [ ] IMPLEMENTATION_PLAN.md Phase 3 (part 2) row marked complete
+- [x] `postCharge` idempotency check runs first — before all domain validations
+- [x] `postCharge` atomically inserts `Transaction` and updates balance in one DB transaction
+- [x] `postCharge` publishes `TRANSACTION_POSTED` event after successful commit
+- [x] Idempotent replay returns original transaction, produces zero DB writes, produces zero SNS publishes
+- [x] `getTransactions` defaults to limit 20, clamps at 100, supports cursor pagination
+- [x] Transaction email template includes all fields required by FR-EMAIL-03
+- [x] All service unit tests pass against Testcontainers Postgres
+- [x] All handler integration tests pass
+- [x] Spec status updated to ✅ Implemented
+- [x] `specs/02-service-layer-foundation.md` stubs for `postCharge` and `getTransactions` marked replaced
+- [x] IMPLEMENTATION_PLAN.md Phase 3 (part 2) row marked complete

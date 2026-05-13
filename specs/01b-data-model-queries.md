@@ -1,6 +1,6 @@
 # Spec: Data Model — Query Layer
 **FR references**: FR-APP-01, FR-APP-02, FR-APP-09, FR-ACC-02, FR-ACC-06, FR-DUE-01, FR-DUE-04, FR-TXN-01, FR-STMT-03, FR-NOTIF-01, FR-BILL-03, FR-BILL-04
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 **Prerequisite**: Phase 1a (schema migrated, types defined)
 
 ---
@@ -81,6 +81,12 @@ export async function updateAccountBalance(prisma: PrismaClient, accountId: stri
 
 export async function getActiveAccountByEmail(prisma: PrismaClient, email: string): Promise<Account | null>
 // Returns ACTIVE or SUSPENDED account for the email.
+
+export async function getAccountsForStatements(prisma: PrismaClient): Promise<Account[]>
+// Returns all ACTIVE and SUSPENDED accounts. Used by generateAllStatements (Phase 5).
+
+export async function getAccountByApplicationId(prisma: PrismaClient, applicationId: string): Promise<Account | null>
+// Added in Phase 6. Fetches account by applicationId; used by sendApprovalEmail where only applicationId is in the SNS payload.
 ```
 
 ### `src/db/queries/payment-due-schedule.queries.ts`
@@ -134,6 +140,12 @@ export async function getTransactionsByAccountId(prisma: PrismaClient, input: Ge
 // Sorted createdAt DESC. Cursor-paginated by transactionId. Default limit 20.
 
 export async function getTransactionById(prisma: PrismaClient, transactionId: string): Promise<Transaction | null>
+
+export async function getTransactionsByAccountAndPeriod(
+  prisma: PrismaClient, accountId: string, periodStart: Date, periodEnd: Date
+): Promise<Transaction[]>
+// Sorted createdAt ASC. Upper bound is exclusive (lt), lower bound inclusive (gte).
+// Used by generateStatementForAccount (Phase 5).
 ```
 
 ### `src/db/queries/statement.queries.ts`
@@ -161,6 +173,9 @@ export async function getStatementWithTransactions(
   prisma: PrismaClient, accountId: string, statementId: string
 ): Promise<Statement | null>
 // Populates transactions[] from createdAt >= periodStart AND createdAt < periodEnd.
+
+export async function getStatementByIdOnly(prisma: PrismaClient, statementId: string): Promise<Statement | null>
+// Added in Phase 6. Fetches statement by statementId alone (no accountId); used by sendStatementEmail where only statementId is in the SNS payload.
 ```
 
 ### `src/db/queries/notification.queries.ts`
@@ -280,9 +295,9 @@ test('updateNotificationPreferences performs partial update — unspecified fiel
 ---
 
 ## Done When
-- [ ] All six query files compile with no implicit `any` under strict mode
-- [ ] All tests in `tests/db/*.test.ts` pass against a Testcontainers Postgres instance
-- [ ] `getActiveApplicationOrAccountByEmail` correctly returns non-null for PENDING app, APPROVED app, ACTIVE account, SUSPENDED account — and null for DECLINED app and CLOSED account
-- [ ] `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` boundary conditions verified by test
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 1b row marked complete
+- [x] All six query files compile with no implicit `any` under strict mode
+- [x] All tests in `tests/db/*.test.ts` pass against a Testcontainers Postgres instance
+- [x] `getActiveApplicationOrAccountByEmail` correctly returns non-null for PENDING app, APPROVED app, ACTIVE account, SUSPENDED account — and null for DECLINED app and CLOSED account
+- [x] `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` boundary conditions verified by test
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 1b row marked complete

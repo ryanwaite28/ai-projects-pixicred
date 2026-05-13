@@ -5,7 +5,7 @@ const dbEnv = {
   ...process.env,
   DATABASE_URL:
     process.env['DATABASE_URL'] ??
-    'postgresql://pixicred:pixicred_local@localhost:5432/pixicred',
+    'postgresql://pixicred:pixicred_local@localhost:5433/pixicred',
 };
 
 describe('Database migrations — integration', () => {

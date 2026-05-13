@@ -27,12 +27,23 @@ done
 for QUEUE in "${QUEUES[@]}"; do
   QUEUE_NAME="pixicred-local-${QUEUE}"
   DLQ_ARN="arn:aws:sqs:${REGION}:${ACCOUNT}:pixicred-local-${QUEUE}-dlq"
-  REDRIVE=$(printf '{"deadLetterTargetArn":"%s","maxReceiveCount":"3"}' "${DLQ_ARN}")
+
+  TMPFILE=$(mktemp)
+  python3 -c "
+import json, sys
+payload = {
+  'QueueName': '${QUEUE_NAME}',
+  'Attributes': {
+    'RedrivePolicy': json.dumps({'deadLetterTargetArn': '${DLQ_ARN}', 'maxReceiveCount': '3'})
+  }
+}
+print(json.dumps(payload))
+" > "${TMPFILE}"
 
   echo "Creating queue: ${QUEUE_NAME}"
   aws --endpoint-url "${ENDPOINT}" --region "${REGION}" sqs create-queue \
-    --queue-name "${QUEUE_NAME}" \
-    --attributes "RedrivePolicy=${REDRIVE}"
+    --cli-input-json "file://${TMPFILE}"
+  rm -f "${TMPFILE}"
 done
 
 # Create SNS topic

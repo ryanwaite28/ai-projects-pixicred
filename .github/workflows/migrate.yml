@@ -20,8 +20,13 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: us-east-1
+  NODE_VERSION: '20'
+
 jobs:
   migrate:
+    name: Run migrations (${{ github.event.inputs.environment || 'dev' }})
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
     steps:
@@ -29,16 +34,19 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
 
       - name: Fetch MIGRATIONS_DATABASE_URL from Secrets Manager
         run: |

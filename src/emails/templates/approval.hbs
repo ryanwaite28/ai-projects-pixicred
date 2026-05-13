@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Your PixiCred Application is Approved!</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #27ae60;">Congratulations! Your Application is Approved</h1>
+  <p>Dear {{firstName}} {{lastName}},</p>
+  <p>We are pleased to inform you that your PixiCred credit card application has been approved.</p>
+
+  <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Credit Limit</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">${{creditLimit}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Opening Balance</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">$500.00</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">First Payment Due Date</td>
+      <td style="padding: 8px; border: 1px solid #ddd;">{{paymentDueDate}}</td>
+    </tr>
+  </table>
+
+  <h2 style="margin-top: 24px;">Account Setup Code</h2>
+  <p>
+    Your Account Setup Code is: <strong style="font-size: 1.2em; letter-spacing: 2px;">{{accountId}}</strong>
+  </p>
+  <p>
+    To create your portal password and access your account online, visit
+    <a href="https://pixicred.com/setup">https://pixicred.com/setup</a>
+    and enter your Account Setup Code.
+  </p>
+
+  <p>Welcome to PixiCred!</p>
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>

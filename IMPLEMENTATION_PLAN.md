@@ -166,12 +166,12 @@ All ID parameters on every service function and handler are validated with `asse
 - `tests/db/*.test.ts` (6 test files)
 
 **Done when**:
-- [ ] All query files compile under strict mode
-- [ ] All `tests/db/*.test.ts` pass against Testcontainers Postgres
-- [ ] Boundary conditions for `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` verified by test
-- [ ] All query function tests pass against Testcontainers Postgres
-- [ ] `getActiveApplicationOrAccountByEmail` handles all 4 blocking cases correctly
-- [ ] `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` boundary tests pass
+- [x] All query files compile under strict mode
+- [x] All `tests/db/*.test.ts` pass against Testcontainers Postgres
+- [x] Boundary conditions for `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` verified by test
+- [x] All query function tests pass against Testcontainers Postgres
+- [x] `getActiveApplicationOrAccountByEmail` handles all 4 blocking cases correctly
+- [x] `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` boundary tests pass
 
 ---
 
@@ -193,11 +193,11 @@ All ID parameters on every service function and handler are validated with `asse
 - `local/service-server.ts`
 
 **Done when**:
-- [ ] All 22 stubs throw `NOT_IMPLEMENTED` — confirmed by routing tests
-- [ ] `ServiceAction` union covers all 22 actions from PROJECT.md Section 6.2
-- [ ] `service.client.ts` dual-mode confirmed by unit tests
-- [ ] `local/service-server.ts` starts on port 3001 and returns correct envelope
-- [ ] All cross-cutting pattern tests pass (`errors`, `validate`, routing)
+- [x] All 22 stubs throw `NOT_IMPLEMENTED` — confirmed by routing tests
+- [x] `ServiceAction` union covers all 22 actions from PROJECT.md Section 6.2
+- [x] `service.client.ts` dual-mode confirmed by unit tests
+- [x] `local/service-server.ts` starts on port 3001 and returns correct envelope
+- [x] All cross-cutting pattern tests pass (`errors`, `validate`, routing)
 
 ---
 
@@ -221,9 +221,9 @@ All ID parameters on every service function and handler are validated with `asse
 - Payment due date: 25th of the next calendar month; December rolls to January of next year
 
 **Done when**:
-- [ ] All 5 mock SSN test vectors pass (see CLAUDE.md)
-- [ ] Duplicate email check (FR-APP-09) handles all 4 blocking states
-- [ ] Atomic account creation rollback test passes
+- [x] All 5 mock SSN test vectors pass (see CLAUDE.md)
+- [x] Duplicate email check (FR-APP-09) handles all 4 blocking states
+- [x] Atomic account creation rollback test passes
 - [ ] Full async flow test (submit → SQS → credit check → decision) passes against MiniStack
 
 ---
@@ -245,8 +245,8 @@ All ID parameters on every service function and handler are validated with `asse
 - `CLOSED → CLOSED` throws `ACCOUNT_ALREADY_CLOSED`
 
 **Done when**:
-- [ ] All 3 status-transition cases tested (`ACTIVE→CLOSED`, `SUSPENDED→CLOSED`, `CLOSED→CLOSED` error)
-- [ ] Reapplication test: `getActiveApplicationOrAccountByEmail` returns null after close
+- [x] All 3 status-transition cases tested (`ACTIVE→CLOSED`, `SUSPENDED→CLOSED`, `CLOSED→CLOSED` error)
+- [x] Reapplication test: `getActiveApplicationOrAccountByEmail` returns null after close
 
 ---
 
@@ -267,8 +267,8 @@ All ID parameters on every service function and handler are validated with `asse
 - `postCharge` is atomic (insert + balance update in one `prisma.$transaction()`)
 
 **Done when**:
-- [ ] Idempotency-check-before-validation test passes (account now CLOSED, key replayed → returns original transaction)
-- [ ] Cursor pagination boundary tests pass
+- [x] Idempotency-check-before-validation test passes (account now CLOSED, key replayed → returns original transaction)
+- [x] Cursor pagination boundary tests pass
 
 ---
 
@@ -291,9 +291,9 @@ All ID parameters on every service function and handler are validated with `asse
 - `computeMinimumPayment` is exported — consumed by Phase 5 (statements) and Phase 4.5 (billing lifecycle)
 
 **Done when**:
-- [ ] `"FULL"` idempotency replay test passes (balance changed since original payment)
-- [ ] `satisfied` one-way flag test passes (charge after zero-balance payment does not reset flag)
-- [ ] Atomic rollback test: no balance update if transaction insert fails
+- [x] `"FULL"` idempotency replay test passes (balance changed since original payment)
+- [x] `satisfied` one-way flag test passes (charge after zero-balance payment does not reset flag)
+- [x] Atomic rollback test: no balance update if transaction insert fails
 
 ---
 
@@ -319,9 +319,9 @@ All ID parameters on every service function and handler are validated with `asse
 - `runBillingLifecycle` calls `closeAccount` from `account.service.ts` — no logic duplication
 
 **Done when**:
-- [ ] Sweep-ordering test: account closed in sweep 1 is not reminded in sweep 2
-- [ ] Reminder idempotency: same-day re-run sends 0 additional reminders
-- [ ] Auto-close idempotency: already-CLOSED accounts excluded by status filter
+- [x] Sweep-ordering test: account closed in sweep 1 is not reminded in sweep 2
+- [x] Reminder idempotency: same-day re-run sends 0 additional reminders
+- [x] Auto-close idempotency: already-CLOSED accounts excluded by status filter
 
 ---
 
@@ -348,10 +348,10 @@ All ID parameters on every service function and handler are validated with `asse
 - Idempotency: same period → return existing statement, no second SNS event
 
 **Done when**:
-- [ ] On-demand period uses prior statement's `periodEnd` or `account.createdAt`
-- [ ] `generateAllStatements` includes ACTIVE + SUSPENDED, skips CLOSED
-- [ ] Period boundary test: transaction at `periodEnd` excluded, at `periodStart` included
-- [ ] Full scheduled flow test passes against MiniStack
+- [x] On-demand period uses prior statement's `periodEnd` or `account.createdAt`
+- [x] `generateAllStatements` includes ACTIVE + SUSPENDED, skips CLOSED
+- [x] Period boundary test: transaction at `periodEnd` excluded, at `periodStart` included
+- [x] Full scheduled flow test passes against MiniStack
 
 ---
 
@@ -376,9 +376,9 @@ All ID parameters on every service function and handler are validated with `asse
 - 4 unconditional types: `sendDeclineEmail`, `sendApprovalEmail`, `sendAutoCloseEmail`, `sendUserCloseEmail`
 
 **Done when**:
-- [ ] All 9 `send*Email` SES-error swallow tests pass with fake SES client
-- [ ] Preference gate tests pass for all 3 gated types
-- [ ] Full async flow test: `postCharge` → `TRANSACTION_POSTED` → email sent and suppressed when disabled
+- [x] All 9 `send*Email` SES-error swallow tests pass with fake SES client
+- [x] Preference gate tests pass for all 3 gated types
+- [x] Full async flow test: `postCharge` → `TRANSACTION_POSTED` → email sent and suppressed when disabled
 
 ---
 
@@ -403,10 +403,10 @@ All ID parameters on every service function and handler are validated with `asse
 - `local/api-server.ts` admin route enqueues to MiniStack SQS — not Lambda invoke
 
 **Done when**:
-- [ ] `npm run build` bundles all 15 entry points without error
-- [ ] All Terraform modules and envs pass `terraform validate`
-- [ ] End-to-end HTTP integration tests pass against full local stack
-- [ ] Worker correctly unwraps SNS envelope for notification queue messages
+- [x] `npm run build` bundles all 15 entry points without error
+- [x] All Terraform modules and envs pass `terraform validate`
+- [x] End-to-end HTTP integration tests pass against full local stack
+- [x] Worker correctly unwraps SNS envelope for notification queue messages
 
 ---
 
@@ -431,13 +431,13 @@ All ID parameters on every service function and handler are validated with `asse
 - DLQ-depth alarms on all 4 DLQs; Lambda-error alarms on service + all 4 consumer Lambdas
 
 **Done when**:
-- [ ] CI pipeline runs end-to-end on push to main (includes `prisma generate` in lint-typecheck job)
-- [ ] `.github/workflows/migrate.yml` triggers on schema changes; uses `MIGRATIONS_DATABASE_URL`; syncs migrations to S3
-- [ ] `src/db/client.ts` generates RDS IAM token in non-local mode; test covers both branches
-- [ ] RDS Terraform module has `iam_database_authentication_enabled = true`
+- [x] CI pipeline runs end-to-end on push to main (includes `prisma generate` in lint-typecheck job)
+- [x] `.github/workflows/migrate.yml` triggers on schema changes; uses `MIGRATIONS_DATABASE_URL`; syncs migrations to S3
+- [x] `src/db/client.ts` generates RDS IAM token in non-local mode; test covers both branches
+- [x] RDS Terraform module has `iam_database_authentication_enabled = true`
 - [ ] Post-Terraform DB users created: `pixicred_app` (IAM) + `migrations-db-user` (password)
-- [ ] All CloudWatch alarms provisioned in Terraform
-- [ ] `README.md` complete with local setup, test commands, and deployment instructions
+- [x] All CloudWatch alarms provisioned in Terraform
+- [x] `README.md` complete with local setup, test commands, and deployment instructions
 
 ---
 
@@ -459,10 +459,10 @@ All ID parameters on every service function and handler are validated with `asse
 - `auth.handler.ts` does shape validation only — all business rules in `auth.service.ts`
 
 **Done when**:
-- [ ] `add_portal_accounts` migration applies to fresh Postgres
-- [ ] All `tests/service/auth.service.test.ts` pass
-- [ ] All `tests/db/auth.queries.test.ts` pass
-- [ ] `POST /auth/register` and `POST /auth/login` work end-to-end via local API server
+- [x] `add_portal_accounts` migration applies to fresh Postgres
+- [x] All `tests/service/auth.service.test.ts` pass
+- [x] All `tests/db/auth.queries.test.ts` pass
+- [x] `POST /auth/register` and `POST /auth/login` work end-to-end via local API server
 
 ---
 
@@ -576,18 +576,18 @@ and reported your findings.
 |---|---|---|---|---|
 | 0 | Project Scaffold | `specs/00-scaffold.md` | ✅ Complete | 2026-05-09 |
 | 1a | Data Model: Schema & Types | `specs/01a-data-model-schema.md` | ✅ Complete | 2026-05-12 |
-| 1b | Data Model: Query Layer | `specs/01b-data-model-queries.md` | ⬜ Not Started | — |
-| 1c | Service Layer Foundation | `specs/02-service-layer-foundation.md` | ⬜ Not Started | — |
-| 2 | Application & Underwriting | `specs/03-application-underwriting.md` | ⬜ Not Started | — |
-| 3a | Account Management | `specs/04-account-management.md` | ⬜ Not Started | — |
-| 3b | Transactions | `specs/05-transactions.md` | ⬜ Not Started | — |
-| 4 | Payments | `specs/06-payments.md` | ⬜ Not Started | — |
-| 4.5 | Billing Lifecycle Jobs | `specs/09-billing-lifecycle.md` | ⬜ Not Started | — |
-| 5 | Statements | `specs/07-statements.md` | ⬜ Not Started | — |
-| 6 | Notifications | `specs/08-notifications.md` | ⬜ Not Started | — |
-| 7 | API Gateway & Full Wiring | `specs/10a-api-wiring.md` | ⬜ Not Started | — |
-| 8 | DevOps & Hardening | `specs/10b-devops-hardening.md` | ⬜ Not Started | — |
-| 9 | Backend Auth | `specs/11-auth.md` | ⬜ Not Started | — |
+| 1b | Data Model: Query Layer | `specs/01b-data-model-queries.md` | ✅ Complete | 2026-05-12 |
+| 1c | Service Layer Foundation | `specs/02-service-layer-foundation.md` | ✅ Complete | 2026-05-13 |
+| 2 | Application & Underwriting | `specs/03-application-underwriting.md` | ✅ Complete | 2026-05-13 |
+| 3a | Account Management | `specs/04-account-management.md` | ✅ Complete | 2026-05-13 |
+| 3b | Transactions | `specs/05-transactions.md` | ✅ Complete | 2026-05-13 |
+| 4 | Payments | `specs/06-payments.md` | ✅ Complete | 2026-05-13 |
+| 4.5 | Billing Lifecycle Jobs | `specs/09-billing-lifecycle.md` | ✅ Complete | 2026-05-13 |
+| 5 | Statements | `specs/07-statements.md` | ✅ Complete | 2026-05-13 |
+| 6 | Notifications | `specs/08-notifications.md` | ✅ Complete | 2026-05-13 |
+| 7 | API Gateway & Full Wiring | `specs/10a-api-wiring.md` | ✅ Complete | 2026-05-13 |
+| 8 | DevOps & Hardening | `specs/10b-devops-hardening.md` | ✅ Complete | 2026-05-13 |
+| 9 | Backend Auth | `specs/11-auth.md` | ✅ Complete | 2026-05-13 |
 | 10a | Frontend: Scaffold & Auth Shell | `specs/12a-frontend-scaffold.md` | ⬜ Not Started | — |
 | 10b | Frontend: Public Apply Flow | `specs/12b-frontend-public.md` | ⬜ Not Started | — |
 | 10c | Frontend: Account Pages | `specs/12c-frontend-account.md` | ⬜ Not Started | — |

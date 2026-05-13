@@ -1,6 +1,6 @@
 # Spec: DevOps & Hardening (Phase 8)
 **FR references**: NFR-07, NFR-08
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 **Prerequisite**: Phase 7 (Terraform modules validated, local stack running)
 
 ---
@@ -20,9 +20,9 @@ NFR-07 requires structured CloudWatch logs and alarms. NFR-08 requires all secre
 ## New / Modified Files
 
 - `src/lib/config.ts` — new: fetches all runtime secrets from Secrets Manager at module init time; exports `getConfig()` returning `{ DB_HOST, DB_PORT, DB_NAME, DB_IAM_USER, JWT_SECRET }`; local mode reads from `process.env` directly; singleton promise cached for Lambda reuse
-- `src/db/client.ts` — modified: calls `getConfig()` from `src/lib/config.ts` instead of doing its own Secrets Manager fetch; generates RDS IAM auth token via `@aws-sdk/rds-signer`; local mode reads `DATABASE_URL` from env; singleton PrismaClient exported
-- `.github/workflows/ci.yml` — full pipeline from lint to prod deploy, including `ng build` and S3 sync + CloudFront invalidation for frontend
-- `.github/workflows/migrate.yml` — dedicated migration workflow using `migrations-db-user`
+- `src/db/client.ts` — modified from Phase 0: calls `getConfig()` from `src/lib/config.ts` instead of bare `new PrismaClient()`; generates RDS IAM auth token via `@aws-sdk/rds-signer`; local mode reads `DATABASE_URL` from env; singleton PrismaClient exported
+- `.github/workflows/ci.yml` — modified from Phase 0: replaces stub with full pipeline (lint → build → test → deploy-dev → integration-test → approve-prod → migrate-prod → deploy-prod); adds `ng-lint-build`, `deploy-frontend-{env}` (S3 sync + CloudFront invalidation), and `approve-prod` gate
+- `.github/workflows/migrate.yml` — modified from Phase 0: extends stub to add OIDC auth, Secrets Manager fetch of `MIGRATIONS_DATABASE_URL`, and S3 audit trail sync
 - `infra/terraform/envs/dev/main.tf` — CloudWatch alarms added (DLQ depth + Lambda errors); `aws_secretsmanager_secret` for `pixicred-dev-secrets`
 - `infra/terraform/envs/prod/main.tf` — same additions for prod
 - `README.md` — architecture overview, local setup, test commands, deployment steps
@@ -158,13 +158,13 @@ terraform -chdir=infra/terraform/envs/prod validate
 ---
 
 ## Done When
-- [ ] `src/lib/config.ts` — `getConfig()` fetches all secrets in non-local mode; caches result; returns env vars directly in local mode; all 4 test cases pass
-- [ ] `src/db/client.ts` uses `getConfig()` from `config.ts`; generates IAM token in non-local mode; all 3 test cases pass
-- [ ] `ci.yml` — backend + frontend lint/build/test; `deploy-frontend-{env}` S3 sync + CloudFront invalidation after each `terraform apply`; `prod-approval` gates prod
-- [ ] `migrate.yml` fetches `MIGRATIONS_DATABASE_URL` from Secrets Manager; runs `prisma migrate deploy`; syncs migrations to S3
-- [ ] CloudWatch DLQ-depth alarms on all 4 DLQs; Lambda-error alarms on service + 4 consumers
-- [ ] `infra/terraform/envs/dev` and `prod` pass `terraform validate` with alarms included
+- [x] `src/lib/config.ts` — `getConfig()` fetches all secrets in non-local mode; caches result; returns env vars directly in local mode; all 4 test cases pass
+- [x] `src/db/client.ts` uses `getConfig()` from `config.ts`; generates IAM token in non-local mode; all 3 test cases pass
+- [x] `ci.yml` — backend + frontend lint/build/test; `deploy-frontend-{env}` S3 sync + CloudFront invalidation after each `terraform apply`; `prod-approval` gates prod
+- [x] `migrate.yml` fetches `MIGRATIONS_DATABASE_URL` from Secrets Manager; runs `prisma migrate deploy`; syncs migrations to S3
+- [x] CloudWatch DLQ-depth alarms on all 4 DLQs; Lambda-error alarms on service + 4 consumers
+- [x] `infra/terraform/envs/dev` and `prod` pass `terraform validate` with alarms included
 - [ ] Post-Terraform DB user setup complete: `pixicred_app` (IAM) and `migrations-db-user` (password) exist in RDS
-- [ ] `README.md` covers local setup, test commands, and deployment instructions
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 8 row marked complete
+- [x] `README.md` covers local setup, test commands, and deployment instructions
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 8 row marked complete

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Payment Due Reminder — PixiCred</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #2c3e50;">Payment Reminder</h1>
+  <p>Dear Valued Customer,</p>
+  <p>
+    This is a reminder that a payment on your PixiCred credit card account
+    (<strong>{{accountId}}</strong>) is due soon.
+  </p>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Current Balance</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{currentBalance}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Minimum Payment Due</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{minimumPayment}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Payment Due Date</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{paymentDueDate}}</strong></td>
+    </tr>
+  </table>
+  <p style="color: #e74c3c; font-weight: bold;">
+    ⚠ Important: If your balance remains unpaid 14 days after the due date, your account will be
+    automatically closed.
+  </p>
+  <p>
+    Log in at <a href="https://pixicred.com/dashboard">pixicred.com/dashboard</a> to make a payment.
+  </p>
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>

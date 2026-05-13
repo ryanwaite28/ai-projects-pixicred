@@ -1,6 +1,6 @@
 # Spec: Notifications
 **FR references**: FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04, FR-NOTIF-05, FR-NOTIF-06, FR-EMAIL-01, FR-EMAIL-02, FR-EMAIL-03, FR-EMAIL-04, FR-EMAIL-05, FR-EMAIL-06, FR-EMAIL-07, FR-EMAIL-08, FR-EMAIL-09
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -222,19 +222,19 @@ test('PATCH /accounts/:accountId/notifications returns 404 ACCOUNT_NOT_FOUND for
 ---
 
 ## Done When
-- [ ] All nine `send*Email` functions catch SES errors and return void — verified by test
-- [ ] `sendTransactionEmail` suppressed when `transactionsEnabled = false`
-- [ ] `sendStatementEmail` suppressed when `statementsEnabled = false`
-- [ ] `sendPaymentDueReminderEmail` suppressed when `paymentRemindersEnabled = false`
-- [ ] `sendAutoCloseEmail`, `sendUserCloseEmail`, `sendDeclineEmail`, `sendApprovalEmail` are not preference-gated
-- [ ] Notification handler correctly parses SNS envelope from SQS record body
-- [ ] Unknown `eventType` acknowledged without throwing
-- [ ] `getStatementByIdOnly` and `getAccountByApplicationId` queries added and unit-tested
-- [ ] Full async flow test: `postCharge` → `TRANSACTION_POSTED` → email sent and suppressed when disabled
-- [ ] All service unit tests pass with fake SES client
-- [ ] All handler integration tests pass
-- [ ] `specs/09-billing-lifecycle.md` complete before this phase is built
-- [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/02-service-layer-foundation.md` stubs for all eleven notification/preference actions marked replaced
-- [ ] `specs/01b-data-model-queries.md` updated to document the two added query functions
-- [ ] IMPLEMENTATION_PLAN.md Phase 6 row marked complete
+- [x] All nine `send*Email` functions catch SES errors and return void — verified by test
+- [x] `sendTransactionEmail` suppressed when `transactionsEnabled = false`
+- [x] `sendStatementEmail` suppressed when `statementsEnabled = false`
+- [x] `sendPaymentDueReminderEmail` suppressed when `paymentRemindersEnabled = false`
+- [x] `sendAutoCloseEmail`, `sendUserCloseEmail`, `sendDeclineEmail`, `sendApprovalEmail` are not preference-gated
+- [x] Notification handler correctly parses SNS envelope from SQS record body
+- [x] Unknown `eventType` acknowledged without throwing
+- [x] `getStatementByIdOnly` and `getAccountByApplicationId` queries added and unit-tested
+- [x] Full async flow test: `postCharge` → `TRANSACTION_POSTED` → email sent and suppressed when disabled
+- [x] All service unit tests pass with fake SES client
+- [x] All handler integration tests pass
+- [x] `specs/09-billing-lifecycle.md` complete before this phase is built
+- [x] Spec status updated to ✅ Implemented
+- [x] `specs/02-service-layer-foundation.md` stubs for all eleven notification/preference actions marked replaced
+- [x] `specs/01b-data-model-queries.md` updated to document the two added query functions
+- [x] IMPLEMENTATION_PLAN.md Phase 6 row marked complete

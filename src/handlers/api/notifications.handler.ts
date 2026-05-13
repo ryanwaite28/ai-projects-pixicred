@@ -1,0 +1,87 @@
+import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { createServiceClient } from '../../clients/service.client.js';
+import { PixiCredError, toHttpStatus } from '../../lib/errors.js';
+import { getConfig } from '../../lib/config.js';
+import { validateBearerToken } from '../../lib/jwt.js';
+import type { NotificationPreference } from '../../types/index.js';
+
+const serviceClient = createServiceClient();
+
+function ok(data: unknown): APIGatewayProxyResultV2 {
+  return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data }) };
+}
+
+function err(error: PixiCredError): APIGatewayProxyResultV2 {
+  return {
+    statusCode: toHttpStatus(error.code),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ error: { code: error.code, message: error.message } }),
+  };
+}
+
+function internalErr(): APIGatewayProxyResultV2 {
+  return {
+    statusCode: 500,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Unexpected error' } }),
+  };
+}
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
+  const method = event.requestContext.http.method;
+  const path   = event.requestContext.http.path;
+
+  try {
+    const match = /^\/accounts\/([^/]+)\/notifications$/.exec(path);
+    if (!match) {
+      return {
+        statusCode: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Route not found' } }),
+      };
+    }
+
+    const accountId = match[1] as string;
+    const { JWT_SECRET } = await getConfig();
+    validateBearerToken(event.headers['authorization'], accountId, JWT_SECRET);
+
+    if (method === 'GET') {
+      const prefs = await serviceClient.invoke<NotificationPreference>({
+        action: 'getNotificationPreferences',
+        payload: { accountId },
+      });
+      return ok(prefs);
+    }
+
+    if (method === 'PATCH') {
+      const body = event.body ? (JSON.parse(event.body) as Record<string, unknown>) : {};
+      const { transactionsEnabled, statementsEnabled, paymentRemindersEnabled } = body;
+      const hasField =
+        typeof transactionsEnabled === 'boolean' ||
+        typeof statementsEnabled === 'boolean' ||
+        typeof paymentRemindersEnabled === 'boolean';
+      if (!hasField) {
+        throw new PixiCredError('VALIDATION_ERROR', 'At least one boolean preference field must be provided');
+      }
+      const prefs = await serviceClient.invoke<NotificationPreference>({
+        action: 'updateNotificationPreferences',
+        payload: {
+          accountId,
+          ...(typeof transactionsEnabled === 'boolean' ? { transactionsEnabled } : {}),
+          ...(typeof statementsEnabled === 'boolean' ? { statementsEnabled } : {}),
+          ...(typeof paymentRemindersEnabled === 'boolean' ? { paymentRemindersEnabled } : {}),
+        },
+      });
+      return ok(prefs);
+    }
+
+    return {
+      statusCode: 404,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Route not found' } }),
+    };
+  } catch (e) {
+    if (e instanceof PixiCredError) return err(e);
+    return internalErr();
+  }
+};

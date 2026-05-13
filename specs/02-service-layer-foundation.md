@@ -1,6 +1,6 @@
 # Spec: Service Layer Foundation
 **FR references**: NFR-04, NFR-07, NFR-09 (infrastructure wiring — no behavioral FRs; all domain FRs are implemented in subsequent phase specs)
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -19,13 +19,13 @@ NFR-09 mandates a service layer that is the single point of entry for all busine
 ## New / Modified Files
 
 ### Service module skeletons
-- `src/service/application.service.ts` — stubs: `submitApplication`, `getApplication`, `runCreditCheck`
-- `src/service/account.service.ts` — stubs: `getAccount`, `closeAccount`
-- `src/service/transaction.service.ts` — stubs: `postCharge`, `getTransactions`
-- `src/service/payment.service.ts` — stub: `postPayment`
-- `src/service/statement.service.ts` — stubs: `generateStatement`, `generateAllStatements`, `getStatements`, `getStatement`
-- `src/service/notification.service.ts` — stubs: `getNotificationPreferences`, `updateNotificationPreferences`, `sendDeclineEmail`, `sendApprovalEmail`, `sendTransactionEmail`, `sendStatementEmail`, `sendPaymentDueReminderEmail`, `sendAutoCloseEmail`, `sendUserCloseEmail`
-- `src/service/billing-lifecycle.service.ts` — stub: `runBillingLifecycle`
+- `src/service/application.service.ts` — stubs replaced by Phase 2 (specs/03-application-underwriting.md): `submitApplication`, `getApplication`, `runCreditCheck`
+- `src/service/account.service.ts` — stubs replaced by Phase 3a (specs/04-account-management.md): `getAccount`, `closeAccount`
+- `src/service/transaction.service.ts` — stubs replaced by Phase 3b (specs/05-transactions.md): `postCharge`, `getTransactions`
+- `src/service/payment.service.ts` — stub replaced by Phase 4 (specs/06-payments.md): `postPayment`
+- `src/service/statement.service.ts` — stubs replaced by Phase 5 (specs/07-statements.md): `generateStatement`, `generateAllStatements`, `getStatements`, `getStatement`
+- `src/service/notification.service.ts` — stubs replaced by Phase 6 (specs/08-notifications.md): `getNotificationPreferences`, `updateNotificationPreferences`, `sendDeclineEmail`, `sendApprovalEmail`, `sendTransactionEmail`, `sendStatementEmail`, `sendPaymentDueReminderEmail`, `sendAutoCloseEmail`, `sendUserCloseEmail`
+- `src/service/billing-lifecycle.service.ts` — stub replaced by Phase 4.5 (specs/09-billing-lifecycle.md): `runBillingLifecycle`
 - `src/service/auth.service.ts` — stubs: `registerPortalAccount`, `loginPortalAccount`
 
 ### Service handler (Lambda entry point)
@@ -318,16 +318,16 @@ test('assertUuid error message includes the field name')
 ---
 
 ## Done When
-- [ ] All six service module skeletons compile under strict TypeScript with no implicit `any`
-- [ ] All stubs throw `PixiCredError('NOT_IMPLEMENTED', ...)` — confirmed by routing tests
-- [ ] `ServiceAction` discriminated union covers all 24 actions from PROJECT.md Section 6.2 (including `registerPortalAccount` and `loginPortalAccount`)
-- [ ] `service.handler.ts` dispatcher has a case for every `ServiceAction.action` value
-- [ ] `service.client.ts` dual-mode invocation confirmed by unit tests (Lambda mock + fetch mock)
-- [ ] `local/service-server.ts` starts on port 3001 and returns `{ data }` / `{ error }` envelope
-- [ ] `src/lib/errors.ts` — all 16 error codes present; `toHttpStatus` mapping verified by test
-- [ ] `src/lib/validate.ts` — UUID guard confirmed by test
-- [ ] `src/lib/logger.ts` — emits valid JSON to stdout (verified by capturing stdout in test)
-- [ ] All tests in `tests/service/` and `tests/lib/` pass
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 1 (part 2) row marked complete
-- [ ] `specs/03-application-underwriting.md` through `specs/09-billing-lifecycle.md` reference `ServiceClients` injection pattern defined here
+- [x] All six service module skeletons compile under strict TypeScript with no implicit `any`
+- [x] All stubs throw `PixiCredError('NOT_IMPLEMENTED', ...)` — confirmed by routing tests
+- [x] `ServiceAction` discriminated union covers all 24 actions from PROJECT.md Section 6.2 (including `registerPortalAccount` and `loginPortalAccount`)
+- [x] `service.handler.ts` dispatcher has a case for every `ServiceAction.action` value
+- [x] `service.client.ts` dual-mode invocation confirmed by unit tests (Lambda mock + fetch mock)
+- [x] `local/service-server.ts` starts on port 3001 and returns `{ data }` / `{ error }` envelope
+- [x] `src/lib/errors.ts` — all 16 error codes present; `toHttpStatus` mapping verified by test
+- [x] `src/lib/validate.ts` — UUID guard confirmed by test
+- [x] `src/lib/logger.ts` — emits valid JSON to stdout (verified by log output in service-routing tests)
+- [x] All tests in `tests/service/` and `tests/lib/` pass
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 1 (part 2) row marked complete
+- [x] `specs/03-application-underwriting.md` through `specs/09-billing-lifecycle.md` reference `ServiceClients` injection pattern defined here

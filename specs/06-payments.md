@@ -1,6 +1,6 @@
 # Spec: Payments
 **FR references**: FR-PAY-01, FR-PAY-02, FR-PAY-03, FR-PAY-04, FR-PAY-05, FR-PAY-06, FR-PAY-07, FR-DUE-03, FR-DUE-04
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -149,17 +149,17 @@ test('POST /accounts/:accountId/payments returns 201 with original transaction o
 ---
 
 ## Done When
-- [ ] `postPayment` idempotency check runs first — before all domain validations
-- [ ] `"FULL"` resolves to `account.currentBalance` at time of processing
-- [ ] Idempotent replay of `"FULL"` returns the originally-resolved amount, not the current balance
-- [ ] Payments accepted on `ACTIVE` and `SUSPENDED` accounts; rejected on `CLOSED`
-- [ ] `PaymentDueSchedule.satisfied` set to `true` and `satisfiedAt` stamped when `newBalance === 0`
-- [ ] `satisfied` not reset when subsequent charges raise the balance above zero again
-- [ ] `postPayment` atomically inserts `Transaction`, updates balance, and (conditionally) marks satisfied in one DB transaction
-- [ ] `computeMinimumPayment` formula matches FR-PAY-05 exactly: `max(25, balance * 0.02)`
-- [ ] `postPayment` publishes `TRANSACTION_POSTED` after successful commit
-- [ ] All service unit tests pass against Testcontainers Postgres
-- [ ] All handler integration tests pass
-- [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/02-service-layer-foundation.md` stub for `postPayment` marked replaced
-- [ ] IMPLEMENTATION_PLAN.md Phase 4 row marked complete
+- [x] `postPayment` idempotency check runs first — before all domain validations
+- [x] `"FULL"` resolves to `account.currentBalance` at time of processing
+- [x] Idempotent replay of `"FULL"` returns the originally-resolved amount, not the current balance
+- [x] Payments accepted on `ACTIVE` and `SUSPENDED` accounts; rejected on `CLOSED`
+- [x] `PaymentDueSchedule.satisfied` set to `true` and `satisfiedAt` stamped when `newBalance === 0`
+- [x] `satisfied` not reset when subsequent charges raise the balance above zero again
+- [x] `postPayment` atomically inserts `Transaction`, updates balance, and (conditionally) marks satisfied in one DB transaction
+- [x] `computeMinimumPayment` formula matches FR-PAY-05 exactly: `max(25, balance * 0.02)`
+- [x] `postPayment` publishes `TRANSACTION_POSTED` after successful commit
+- [x] All service unit tests pass against Testcontainers Postgres
+- [x] All handler integration tests pass
+- [x] Spec status updated to ✅ Implemented
+- [x] `specs/02-service-layer-foundation.md` stub for `postPayment` marked replaced
+- [x] IMPLEMENTATION_PLAN.md Phase 4 row marked complete

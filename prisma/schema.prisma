@@ -45,6 +45,7 @@ model Account {
   transactions            Transaction[]
   statements              Statement[]
   notificationPreferences NotificationPreference?
+  portalAccount           PortalAccount?
 
   @@index([holderEmail])
   @@index([status])
@@ -113,4 +114,15 @@ model NotificationPreference {
   account Account @relation(fields: [accountId], references: [accountId])
 
   @@map("notification_preferences")
+}
+
+model PortalAccount {
+  accountId    String   @id @map("account_id") @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  account Account @relation(fields: [accountId], references: [accountId])
+
+  @@map("portal_accounts")
 }

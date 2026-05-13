@@ -1,6 +1,6 @@
 # Spec: Account Management
 **FR references**: FR-ACC-02, FR-ACC-03, FR-ACC-04, FR-ACC-05, FR-ACC-09, FR-ACC-10, FR-EMAIL-09
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -131,15 +131,16 @@ test('DELETE /accounts/:accountId always passes reason USER_REQUESTED to service
 ---
 
 ## Done When
-- [ ] `getAccount` derives `availableCredit` correctly and never reads it from DB
-- [ ] `closeAccount` handles all three status transitions: `ACTIVE → CLOSED`, `SUSPENDED → CLOSED`, `CLOSED → CLOSED` (error)
-- [ ] `closeAccount` publishes correct SNS event type for each `reason`
-- [ ] `closeAccount` does not call any email function directly
-- [ ] User-close email template includes all fields required by FR-EMAIL-09
-- [ ] Handler passes `reason: 'USER_REQUESTED'` as a fixed literal — no conditional logic in handler
-- [ ] Reapplication test confirms `getActiveApplicationOrAccountByEmail` returns null after close
-- [ ] All service unit tests pass against Testcontainers Postgres
-- [ ] All handler integration tests pass
-- [ ] Spec status updated to ✅ Implemented
-- [ ] `specs/02-service-layer-foundation.md` stubs for `getAccount` and `closeAccount` marked replaced
-- [ ] IMPLEMENTATION_PLAN.md Phase 3 (part 1) row marked complete
+- [x] `getAccount` returns all FR-ACC-02 fields (`accountId`, `applicationId`, `holderEmail`, `creditLimit`, `currentBalance`, `availableCredit`, `status`, `paymentDueDate`, `closedAt`, `closeReason`, `createdAt`) — confirmed by service test
+- [x] `getAccount` derives `availableCredit` correctly and never reads it from DB
+- [x] `closeAccount` handles all three status transitions: `ACTIVE → CLOSED`, `SUSPENDED → CLOSED`, `CLOSED → CLOSED` (error)
+- [x] `closeAccount` publishes correct SNS event type for each `reason`
+- [x] `closeAccount` does not call any email function directly
+- [x] User-close email template includes all fields required by FR-EMAIL-09
+- [x] Handler passes `reason: 'USER_REQUESTED'` as a fixed literal — no conditional logic in handler
+- [x] Reapplication test confirms `getActiveApplicationOrAccountByEmail` returns null after close
+- [x] All service unit tests pass against Testcontainers Postgres
+- [x] All handler integration tests pass
+- [x] Spec status updated to ✅ Implemented
+- [x] `specs/02-service-layer-foundation.md` stubs for `getAccount` and `closeAccount` marked replaced
+- [x] IMPLEMENTATION_PLAN.md Phase 3 (part 1) row marked complete

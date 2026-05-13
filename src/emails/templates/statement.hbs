@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Your PixiCred Statement is Ready</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #2c3e50;">Your Statement is Ready</h1>
+  <p>Dear Valued Customer,</p>
+  <p>
+    Your PixiCred statement for the period <strong>{{periodStart}}</strong> to
+    <strong>{{periodEnd}}</strong> is now available.
+  </p>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Opening Balance</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${{openingBalance}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Total Charges</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${{totalCharges}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Total Payments</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${{totalPayments}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Closing Balance</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{closingBalance}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Minimum Payment Due</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{minimumPaymentDue}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; color: #666;">Payment Due Date</td>
+      <td style="padding: 8px;"><strong>{{dueDate}}</strong></td>
+    </tr>
+  </table>
+  <p>
+    Log in to your account at <a href="https://pixicred.com/dashboard">pixicred.com/dashboard</a>
+    to view the full statement with transaction details.
+  </p>
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>
