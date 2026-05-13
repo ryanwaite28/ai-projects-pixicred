@@ -8,40 +8,109 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Stubs — full field definitions added in Phase 1a
-
 model Application {
-  id String @id @default(uuid())
+  applicationId String    @id @default(uuid()) @map("application_id") @db.Uuid
+  email         String
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  dateOfBirth   DateTime  @map("date_of_birth") @db.Date
+  annualIncome  Decimal   @map("annual_income") @db.Decimal(12, 2)
+  mockSsn       String    @map("mock_ssn") @db.Char(5)
+  status        String    @default("PENDING")
+  creditLimit   Decimal?  @map("credit_limit") @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  decidedAt     DateTime? @map("decided_at") @db.Timestamptz(6)
 
+  account Account?
+
+  @@index([email])
+  @@index([status])
   @@map("applications")
 }
 
 model Account {
-  id String @id @default(uuid())
+  accountId      String    @id @default(uuid()) @map("account_id") @db.Uuid
+  applicationId  String    @unique @map("application_id") @db.Uuid
+  holderEmail    String    @map("holder_email")
+  creditLimit    Decimal   @map("credit_limit") @db.Decimal(10, 2)
+  currentBalance Decimal   @default(500.00) @map("current_balance") @db.Decimal(10, 2)
+  status         String    @default("ACTIVE")
+  paymentDueDate DateTime  @map("payment_due_date") @db.Date
+  closeReason    String?   @map("close_reason")
+  closedAt       DateTime? @map("closed_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  application             Application             @relation(fields: [applicationId], references: [applicationId])
+  paymentDueSchedule      PaymentDueSchedule?
+  transactions            Transaction[]
+  statements              Statement[]
+  notificationPreferences NotificationPreference?
+
+  @@index([holderEmail])
+  @@index([status])
+  @@index([paymentDueDate])
   @@map("accounts")
 }
 
 model PaymentDueSchedule {
-  id String @id @default(uuid())
+  accountId        String    @id @map("account_id") @db.Uuid
+  paymentDueDate   DateTime  @map("payment_due_date") @db.Date
+  satisfied        Boolean   @default(false)
+  satisfiedAt      DateTime? @map("satisfied_at") @db.Timestamptz(6)
+  reminderSentDate DateTime? @map("reminder_sent_date") @db.Date
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  account Account @relation(fields: [accountId], references: [accountId])
+
+  @@index([paymentDueDate])
+  @@index([satisfied])
   @@map("payment_due_schedules")
 }
 
 model Transaction {
-  id String @id @default(uuid())
+  transactionId  String   @id @default(uuid()) @map("transaction_id") @db.Uuid
+  accountId      String   @map("account_id") @db.Uuid
+  type           String
+  merchantName   String?  @map("merchant_name")
+  amount         Decimal  @db.Decimal(10, 2)
+  idempotencyKey String   @map("idempotency_key")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  account Account @relation(fields: [accountId], references: [accountId])
+
+  @@index([accountId])
+  @@unique([accountId, idempotencyKey])
   @@map("transactions")
 }
 
 model Statement {
-  id String @id @default(uuid())
+  statementId       String   @id @default(uuid()) @map("statement_id") @db.Uuid
+  accountId         String   @map("account_id") @db.Uuid
+  periodStart       DateTime @map("period_start") @db.Timestamptz(6)
+  periodEnd         DateTime @map("period_end") @db.Timestamptz(6)
+  openingBalance    Decimal  @map("opening_balance") @db.Decimal(10, 2)
+  closingBalance    Decimal  @map("closing_balance") @db.Decimal(10, 2)
+  totalCharges      Decimal  @map("total_charges") @db.Decimal(10, 2)
+  totalPayments     Decimal  @map("total_payments") @db.Decimal(10, 2)
+  minimumPaymentDue Decimal  @map("minimum_payment_due") @db.Decimal(10, 2)
+  dueDate           DateTime @map("due_date") @db.Date
+  generatedAt       DateTime @default(now()) @map("generated_at") @db.Timestamptz(6)
 
+  account Account @relation(fields: [accountId], references: [accountId])
+
+  @@index([accountId])
+  @@unique([accountId, periodStart, periodEnd])
   @@map("statements")
 }
 
 model NotificationPreference {
-  id String @id @default(uuid())
+  accountId               String   @id @map("account_id") @db.Uuid
+  transactionsEnabled     Boolean  @default(true) @map("transactions_enabled")
+  statementsEnabled       Boolean  @default(true) @map("statements_enabled")
+  paymentRemindersEnabled Boolean  @default(true) @map("payment_reminders_enabled")
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  account Account @relation(fields: [accountId], references: [accountId])
 
   @@map("notification_preferences")
 }

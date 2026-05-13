@@ -1,6 +1,6 @@
 # Spec: Data Model — Prisma Schema & Type Definitions
 **FR references**: FR-APP-01, FR-APP-02, FR-APP-03, FR-ACC-02, FR-ACC-03, FR-ACC-06, FR-ACC-07, FR-ACC-08, FR-DUE-01, FR-DUE-02, FR-TXN-01, FR-STMT-03, FR-NOTIF-01, FR-PAY-01, FR-BILL-07
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 
 ---
 
@@ -230,10 +230,10 @@ export interface NotificationPreference {
 ---
 
 ## Done When
-- [ ] `prisma/schema.prisma` models match PROJECT.md Section 7.1 field-for-field (six core models only; `portal_accounts` added in Phase 9)
-- [ ] `prisma migrate dev` produces a migration file and exits 0 against local Postgres
-- [ ] `prisma generate` produces PrismaClient with all six model types
-- [ ] `npm run db:migrate` (`prisma migrate deploy`) applies against a fresh Postgres and exits 0
-- [ ] All TypeScript interfaces in `src/types/index.ts` compile under strict mode with no implicit `any`
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 1a row marked complete
+- [x] `prisma/schema.prisma` models match PROJECT.md Section 7.1 field-for-field (six core models only; `portal_accounts` added in Phase 9)
+- [x] `prisma migrate dev` produces a migration file and exits 0 against local Postgres
+- [x] `prisma generate` produces PrismaClient with all six model types
+- [x] `npm run db:migrate` (`prisma migrate deploy`) applies against a fresh Postgres and exits 0
+- [x] All TypeScript interfaces in `src/types/index.ts` compile under strict mode with no implicit `any`
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 1a row marked complete
