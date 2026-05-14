@@ -361,7 +361,14 @@ module "api_health" {
   timeout       = 5
   s3_bucket     = aws_s3_bucket.lambda_packages.bucket
   s3_key        = "api-health/index.zip"
-  policy_json   = jsonencode({ Version = "2012-10-17", Statement = [] })
+  policy_json   = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["logs:CreateLogGroup"]
+      Resource = "arn:aws:logs:*:*:*"
+    }]
+  })
   environment   = {}
   tags          = local.tags
 }
