@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.secrets.example
 
 # ── Node.js ──────────────────────────────────────────────────────────────────
 node_modules/

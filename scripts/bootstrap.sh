@@ -683,39 +683,79 @@ else
 fi
 
 # ── Secrets Manager secrets ─────────────────────────────────────────────────────
-# DATABASE_URL is a placeholder here; CI/CD syncs the real value from the GitHub
-# environment secret on every migrate run. JWT_SECRET is generated once and kept.
+# DATABASE_URL is loaded from .env.secrets (gitignored) if present so the CI
+# pre-deploy-check passes without waiting for the first migrate run.
+# JWT_SECRET is generated once at bootstrap and never overwritten.
 step "Secrets Manager secrets"
 
-# Generate a JWT_SECRET for use in newly-created secrets (idempotent: existing
-# secrets that already have a JWT_SECRET are never overwritten).
+# Load DATABASE_URL values from .env.secrets — reads literals, never sourced,
+# so special characters ($, {, }, etc.) in passwords are captured safely.
+DEV_DATABASE_URL=""
+PROD_DATABASE_URL=""
+if [ -f .env.secrets ]; then
+  DEV_DATABASE_URL=$(grep -E '^DEV_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2- | sed "s/^['\"]//;s/['\"]$//")
+  PROD_DATABASE_URL=$(grep -E '^PROD_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2- | sed "s/^['\"]//;s/['\"]$//")
+  [ -n "$DEV_DATABASE_URL" ]  && info "Loaded DEV_DATABASE_URL from .env.secrets"
+  [ -n "$PROD_DATABASE_URL" ] && info "Loaded PROD_DATABASE_URL from .env.secrets"
+  [ -z "$DEV_DATABASE_URL" ]  && warn ".env.secrets: DEV_DATABASE_URL is empty"
+  [ -z "$PROD_DATABASE_URL" ] && warn ".env.secrets: PROD_DATABASE_URL is empty"
+else
+  warn ".env.secrets not found — DATABASE_URL will remain placeholder in Secrets Manager"
+  warn "Create .env.secrets from .env.secrets.example before running bootstrap.sh"
+fi
+
 GENERATED_JWT=$(openssl rand -hex 32)
 
 for ENV in "${ENVS[@]}"; do
   SECRET_NAME="pixicred-${ENV}-secrets"
+
+  if [ "$ENV" = "dev" ]; then
+    DB_URL="$DEV_DATABASE_URL"
+  else
+    DB_URL="$PROD_DATABASE_URL"
+  fi
+
   if aws_cmd secretsmanager describe-secret \
       --secret-id "${SECRET_NAME}" 2>/dev/null >/dev/null; then
-    # Secret exists — add JWT_SECRET if missing; never touch DATABASE_URL (CI owns it)
+    # Secret exists — update JWT_SECRET if missing; set DATABASE_URL if we have a real value
     EXISTING=$(aws_cmd secretsmanager get-secret-value \
       --secret-id "${SECRET_NAME}" \
       --query 'SecretString' --output text)
     EXISTING_JWT=$(echo "${EXISTING}" | jq -r '.JWT_SECRET // empty')
+
+    UPDATED="$EXISTING"
+    CHANGED=false
+
     if [ -z "${EXISTING_JWT}" ]; then
-      UPDATED=$(echo "${EXISTING}" | jq --arg jwt "${GENERATED_JWT}" '. + {JWT_SECRET: $jwt}')
+      UPDATED=$(echo "${UPDATED}" | jq --arg jwt "${GENERATED_JWT}" '. + {JWT_SECRET: $jwt}')
+      CHANGED=true
+    fi
+
+    if [ -n "$DB_URL" ]; then
+      UPDATED=$(echo "${UPDATED}" | jq --arg url "$DB_URL" '. + {DATABASE_URL: $url}')
+      CHANGED=true
+    fi
+
+    if [ "$CHANGED" = true ]; then
       aws_cmd secretsmanager put-secret-value \
         --secret-id "${SECRET_NAME}" \
         --secret-string "${UPDATED}" >/dev/null
-      info "Added JWT_SECRET to existing secret: ${SECRET_NAME}"
+      info "Updated secret: ${SECRET_NAME}"
     else
-      info "Secret ${SECRET_NAME}: already exists (JWT_SECRET present)"
+      info "Secret ${SECRET_NAME}: already up to date"
     fi
   else
+    # Create new secret — jq handles JSON-escaping of the DATABASE_URL (safe for special chars)
+    SECRET_JSON=$(jq -n \
+      --arg db  "${DB_URL:-PLACEHOLDER_set_by_cicd}" \
+      --arg jwt "${GENERATED_JWT}" \
+      '{DATABASE_URL: $db, JWT_SECRET: $jwt}')
     aws_cmd secretsmanager create-secret \
       --name "${SECRET_NAME}" \
-      --description "PixiCred ${ENV} runtime secrets. DATABASE_URL is synced from GitHub env secret by CI/CD." \
-      --secret-string "{\"DATABASE_URL\":\"PLACEHOLDER_set_by_cicd\",\"JWT_SECRET\":\"${GENERATED_JWT}\"}" \
+      --description "PixiCred ${ENV} runtime secrets. DATABASE_URL synced from GitHub env secret by CI/CD." \
+      --secret-string "$SECRET_JSON" \
       >/dev/null
-    info "Created secret: ${SECRET_NAME} (placeholder DATABASE_URL; JWT_SECRET generated)"
+    info "Created secret: ${SECRET_NAME}"
   fi
 done
 
@@ -791,8 +831,16 @@ echo "     • IAM role: ${ROLE_NAME}"
 echo "     • GitHub env secret: AWS_ROLE_ARN (dev, prod, prod-approval)"
 echo "     • GitHub repo secret: AWS_REGION"
 echo "     • GitHub environments: dev, prod, prod-approval"
-echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL placeholder + JWT_SECRET)"
-echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL placeholder + JWT_SECRET)"
+if [ -n "$DEV_DATABASE_URL" ]; then
+  echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL from .env.secrets + JWT_SECRET)"
+else
+  echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL placeholder + JWT_SECRET)"
+fi
+if [ -n "$PROD_DATABASE_URL" ]; then
+  echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL from .env.secrets + JWT_SECRET)"
+else
+  echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL placeholder + JWT_SECRET)"
+fi
 echo ""
 echo "  ⚠️  Required manual steps:"
 echo ""
