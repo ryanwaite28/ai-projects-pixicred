@@ -235,7 +235,7 @@ step "Secrets Manager (local stubs)"
 
 # DATABASE_URL points to local Postgres (docker-compose service)
 upsert_secret "pixicred-dev-secrets" \
-  '{"DATABASE_URL":"postgresql://pixicred:pixicred@localhost:5432/pixicred"}'
+  '{"DATABASE_URL":"postgresql://pixicred:pixicred@localhost:5432/pixicred","JWT_SECRET":"local-dev-secret-not-for-production"}'
 
 # ── SES Sender Identity ──────────────────────────────────────────────────────────
 step "SES Sender Identity (local)"
@@ -459,6 +459,94 @@ for ENV in "${ENVS[@]}"; do
   fi
 done
 
+# ── Shared VPC (pixicred — dev + prod share this) ─────────────────────────────
+# Lambdas are NOT placed in the VPC (Supabase is external); the VPC exists for
+# any future private resources (ElastiCache, RDS, etc.) and is referenced by SSM.
+step "Shared VPC (pixicred)"
+
+VPC_ID=$(aws_cmd ec2 describe-vpcs \
+  --filters "Name=tag:Name,Values=pixicred" "Name=tag:Project,Values=pixicred" \
+  --query 'Vpcs[0].VpcId' \
+  --output text 2>/dev/null || echo "None")
+
+if [ "${VPC_ID}" = "None" ] || [ -z "${VPC_ID}" ]; then
+  VPC_ID=$(aws_cmd ec2 create-vpc \
+    --cidr-block "10.0.0.0/16" \
+    --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=pixicred},{Key=Project,Value=pixicred},{Key=ManagedBy,Value=bootstrap}]" \
+    --query 'Vpc.VpcId' \
+    --output text)
+  aws_cmd ec2 modify-vpc-attribute \
+    --vpc-id "${VPC_ID}" \
+    --enable-dns-hostnames '{"Value":true}'
+  aws_cmd ec2 modify-vpc-attribute \
+    --vpc-id "${VPC_ID}" \
+    --enable-dns-support '{"Value":true}'
+  info "Created VPC: ${VPC_ID} (pixicred, 10.0.0.0/16)"
+else
+  info "VPC pixicred: already exists (${VPC_ID})"
+fi
+
+# ── Subnets (2 AZs in us-east-1) ───────────────────────────────────────────────
+step "Subnets (2 AZs)"
+
+readonly SUBNET_CONFIGS=(
+  "us-east-1a|10.0.1.0/24|pixicred-subnet-1a"
+  "us-east-1b|10.0.2.0/24|pixicred-subnet-1b"
+)
+
+SUBNET_IDS=()
+for SUBNET_CONFIG in "${SUBNET_CONFIGS[@]}"; do
+  AZ="${SUBNET_CONFIG%%|*}"
+  _rest="${SUBNET_CONFIG#*|}"
+  CIDR="${_rest%%|*}"
+  SUBNET_NAME="${_rest#*|}"
+
+  EXISTING_SUBNET=$(aws_cmd ec2 describe-subnets \
+    --filters "Name=tag:Name,Values=${SUBNET_NAME}" "Name=vpc-id,Values=${VPC_ID}" \
+    --query 'Subnets[0].SubnetId' \
+    --output text 2>/dev/null || echo "None")
+
+  if [ "${EXISTING_SUBNET}" = "None" ] || [ -z "${EXISTING_SUBNET}" ]; then
+    SUBNET_ID=$(aws_cmd ec2 create-subnet \
+      --vpc-id "${VPC_ID}" \
+      --cidr-block "${CIDR}" \
+      --availability-zone "${AZ}" \
+      --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${SUBNET_NAME}},{Key=Project,Value=pixicred},{Key=ManagedBy,Value=bootstrap}]" \
+      --query 'Subnet.SubnetId' \
+      --output text)
+    info "Created subnet: ${SUBNET_ID} (${SUBNET_NAME}, ${CIDR}, ${AZ})"
+  else
+    SUBNET_ID="${EXISTING_SUBNET}"
+    info "Subnet ${SUBNET_NAME}: already exists (${SUBNET_ID})"
+  fi
+  SUBNET_IDS+=("${SUBNET_ID}")
+done
+
+# ── SSM Parameters ─────────────────────────────────────────────────────────────
+# Terraform reads these at plan time via data "aws_ssm_parameter"; no GitHub
+# secrets needed for infra config values that change per-environment.
+step "SSM Parameters"
+
+upsert_ssm_param() {
+  local name="$1" value="$2"
+  aws_cmd ssm put-parameter \
+    --name "${name}" \
+    --value "${value}" \
+    --type "String" \
+    --overwrite \
+    >/dev/null \
+    && info "Upserted SSM parameter: ${name}" \
+    || warn "Failed to upsert SSM parameter: ${name}"
+}
+
+# Build subnet IDs as JSON array string (e.g. '["subnet-abc","subnet-def"]')
+SUBNET_IDS_JSON=$(printf '"%s"\n' "${SUBNET_IDS[@]}" | jq -cs '.')
+
+upsert_ssm_param "/pixicred/vpc_id"                     "${VPC_ID}"
+upsert_ssm_param "/pixicred/subnet_ids"                 "${SUBNET_IDS_JSON}"
+upsert_ssm_param "/pixicred/dev/acm_certificate_arn"    "${ACM_CERT_ARN_DEV}"
+upsert_ssm_param "/pixicred/prod/acm_certificate_arn"   "${ACM_CERT_ARN_PROD}"
+
 # ── GitHub Actions OIDC identity provider ──────────────────────────────────────
 step "GitHub Actions OIDC identity provider"
 
@@ -566,21 +654,40 @@ else
   print_github_manual_steps
 fi
 
-# ── Secrets Manager secrets (placeholder DATABASE_URL) ─────────────────────────
+# ── Secrets Manager secrets ─────────────────────────────────────────────────────
+# DATABASE_URL is a placeholder here; CI/CD syncs the real value from the GitHub
+# environment secret on every migrate run. JWT_SECRET is generated once and kept.
 step "Secrets Manager secrets"
+
+# Generate a JWT_SECRET for use in newly-created secrets (idempotent: existing
+# secrets that already have a JWT_SECRET are never overwritten).
+GENERATED_JWT=$(openssl rand -hex 32)
 
 for ENV in "${ENVS[@]}"; do
   SECRET_NAME="pixicred-${ENV}-secrets"
   if aws_cmd secretsmanager describe-secret \
       --secret-id "${SECRET_NAME}" 2>/dev/null >/dev/null; then
-    info "Secret ${SECRET_NAME}: already exists"
+    # Secret exists — add JWT_SECRET if missing; never touch DATABASE_URL (CI owns it)
+    EXISTING=$(aws_cmd secretsmanager get-secret-value \
+      --secret-id "${SECRET_NAME}" \
+      --query 'SecretString' --output text)
+    EXISTING_JWT=$(echo "${EXISTING}" | jq -r '.JWT_SECRET // empty')
+    if [ -z "${EXISTING_JWT}" ]; then
+      UPDATED=$(echo "${EXISTING}" | jq --arg jwt "${GENERATED_JWT}" '. + {JWT_SECRET: $jwt}')
+      aws_cmd secretsmanager put-secret-value \
+        --secret-id "${SECRET_NAME}" \
+        --secret-string "${UPDATED}" >/dev/null
+      info "Added JWT_SECRET to existing secret: ${SECRET_NAME}"
+    else
+      info "Secret ${SECRET_NAME}: already exists (JWT_SECRET present)"
+    fi
   else
     aws_cmd secretsmanager create-secret \
       --name "${SECRET_NAME}" \
-      --description "PixiCred ${ENV} runtime secrets. Update DATABASE_URL after RDS is provisioned by Terraform." \
-      --secret-string '{"DATABASE_URL":"PLACEHOLDER_update_after_rds_provisioned_by_terraform"}' \
+      --description "PixiCred ${ENV} runtime secrets. DATABASE_URL is synced from GitHub env secret by CI/CD." \
+      --secret-string "{\"DATABASE_URL\":\"PLACEHOLDER_set_by_cicd\",\"JWT_SECRET\":\"${GENERATED_JWT}\"}" \
       >/dev/null
-    info "Created secret: ${SECRET_NAME} (placeholder DATABASE_URL — update after Phase 8 terraform apply)"
+    info "Created secret: ${SECRET_NAME} (placeholder DATABASE_URL; JWT_SECRET generated)"
   fi
 done
 
@@ -643,13 +750,19 @@ echo "     • pixicred-dev-tf-locks   (DynamoDB, PAY_PER_REQUEST)"
 echo "     • pixicred-prod-tf-locks  (DynamoDB, PAY_PER_REQUEST)"
 echo "     • pixicred-dev-migrations  (S3, versioned, encrypted)"
 echo "     • pixicred-prod-migrations (S3, versioned, encrypted)"
+echo "     • VPC: pixicred (10.0.0.0/16, ${VPC_ID})"
+echo "     • Subnets: pixicred-subnet-1a (us-east-1a), pixicred-subnet-1b (us-east-1b)"
+echo "     • SSM /pixicred/vpc_id"
+echo "     • SSM /pixicred/subnet_ids"
+echo "     • SSM /pixicred/dev/acm_certificate_arn"
+echo "     • SSM /pixicred/prod/acm_certificate_arn"
 echo "     • OIDC provider: ${OIDC_HOST}"
 echo "     • IAM role: ${ROLE_NAME}"
 echo "     • GitHub env secret: AWS_ROLE_ARN (dev, prod, prod-approval)"
 echo "     • GitHub repo secret: AWS_REGION"
 echo "     • GitHub environments: dev, prod, prod-approval"
-echo "     • Secrets Manager: pixicred-dev-secrets (placeholder DATABASE_URL)"
-echo "     • Secrets Manager: pixicred-prod-secrets (placeholder DATABASE_URL)"
+echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL placeholder + JWT_SECRET)"
+echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL placeholder + JWT_SECRET)"
 echo ""
 echo "  ⚠️  Required manual steps:"
 echo ""
@@ -657,11 +770,11 @@ echo "  1. Add required reviewers to the 'prod-approval' GitHub environment:"
 echo "     https://github.com/${GITHUB_REPO}/settings/environments"
 echo "     (prod-approval is the single approval gate; prod itself has no required reviewers)"
 echo ""
-echo "  2. (After Phase 8 terraform apply) Update Secrets Manager DATABASE_URL:"
-echo "     aws secretsmanager put-secret-value \\"
-echo "       --secret-id pixicred-dev-secrets \\"
-echo "       --secret-string '{\"DATABASE_URL\":\"postgresql://pixicred:<pass>@<rds-endpoint>:5432/pixicred\"}' \\"
-echo "       --profile ${AWS_PROFILE}"
+echo "  2. Add DATABASE_URL secrets to GitHub environments:"
+echo "     GitHub repo → Settings → Environments → dev → Add secret:"
+echo "       DATABASE_URL = <Supabase connection pooler URL for dev>"
+echo "     Repeat for prod environment."
+echo "     CI/CD syncs this value to Secrets Manager on every deploy/migrate run."
 echo ""
 echo "  3. (Optional) Request SES production access to send to unverified recipients:"
 echo "     AWS Console → SES → Account dashboard → Request production access"

@@ -1,10 +1,9 @@
 import type { PrismaClient } from '@prisma/client';
 import {
   getTransactionByIdempotencyKey,
-  createTransaction,
   getTransactionsByAccountId,
 } from '../db/queries/transaction.queries.js';
-import { getAccountById, updateAccountBalance } from '../db/queries/account.queries.js';
+import { getAccountById } from '../db/queries/account.queries.js';
 import { PixiCredError } from '../lib/errors.js';
 import { assertUuid } from '../lib/validate.js';
 import type { Transaction, ServiceClients, PostChargeInput, GetTransactionsInput } from '../types/index.js';

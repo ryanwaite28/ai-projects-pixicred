@@ -11,8 +11,6 @@ async function expectNotImplemented(action: ServiceAction): Promise<void> {
 }
 
 // Minimal stub payloads — stubs throw immediately so shapes don't matter
-const p = {} as never;
-
 describe('service dispatch — stub routing', () => {
   // submitApplication, getApplication, runCreditCheck implemented in Phase 2
   // getAccount, closeAccount implemented in Phase 3a

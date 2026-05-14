@@ -22,7 +22,6 @@
     "@aws-sdk/client-ses": "^3.600.0",
     "@aws-sdk/client-sns": "^3.600.0",
     "@aws-sdk/client-sqs": "^3.600.0",
-    "@aws-sdk/rds-signer": "^3.600.0",
     "@prisma/client": "^5.14.0",
     "bcrypt": "^5.1.1",
     "express": "^5.2.1",

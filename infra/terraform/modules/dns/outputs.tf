@@ -1,6 +1,6 @@
 output "apex_record_fqdn" {
-  value       = aws_route53_record.apex.fqdn
-  description = "FQDN of the apex A record"
+  value       = var.create_apex_records ? aws_route53_record.apex[0].fqdn : null
+  description = "FQDN of the apex A record (null when create_apex_records = false)"
 }
 
 output "api_record_fqdn" {

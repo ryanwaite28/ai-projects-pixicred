@@ -117,11 +117,86 @@ jobs:
           path: dist/lambdas/
           retention-days: 1
 
-  # ── Run migrations on dev ────────────────────────────────────────────────
+  # ── Pre-deploy shift-left checks (dev) ────────────────────────────────────
+  pre-deploy-check:
+    name: Pre-deploy checks (dev)
+    runs-on: ubuntu-latest
+    needs: [build-backend, ng-lint-build]
+    if: github.ref == 'refs/heads/main'
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check ACM certificate (ISSUED)
+        run: |
+          CERT_ARN=$(aws ssm get-parameter \
+            --name "/pixicred/dev/acm_certificate_arn" \
+            --query "Parameter.Value" --output text)
+          STATUS=$(aws acm describe-certificate \
+            --certificate-arn "$CERT_ARN" \
+            --query "Certificate.Status" --output text)
+          if [ "$STATUS" != "ISSUED" ]; then
+            echo "❌ ACM certificate not ISSUED (status: $STATUS)"
+            exit 1
+          fi
+          echo "✅ ACM certificate ISSUED"
+
+      - name: Check SES domain identity verified
+        run: |
+          STATUS=$(aws sesv2 get-email-identity \
+            --email-identity pixicred.com \
+            --query "VerifiedForSendingStatus" --output text 2>/dev/null || echo "false")
+          if [ "$STATUS" != "True" ]; then
+            echo "❌ SES domain pixicred.com not verified"
+            exit 1
+          fi
+          echo "✅ SES domain verified"
+
+      - name: Check Lambda packages S3 bucket exists
+        run: |
+          aws s3api head-bucket --bucket "pixicred-dev-lambda-packages" \
+            && echo "✅ Lambda packages bucket exists" \
+            || (echo "❌ Lambda packages bucket missing — run bootstrap.sh"; exit 1)
+
+      - name: Check Secrets Manager populated (not placeholder)
+        run: |
+          SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id "pixicred-dev-secrets" \
+            --query "SecretString" --output text)
+          DB_URL=$(echo "$SECRET" | jq -r '.DATABASE_URL // empty')
+          JWT=$(echo "$SECRET" | jq -r '.JWT_SECRET // empty')
+          FAIL=0
+          if [ -z "$DB_URL" ] || echo "$DB_URL" | grep -qi "placeholder"; then
+            echo "❌ DATABASE_URL is missing or placeholder in pixicred-dev-secrets"
+            FAIL=1
+          fi
+          if [ -z "$JWT" ] || echo "$JWT" | grep -qi "placeholder"; then
+            echo "❌ JWT_SECRET is missing or placeholder in pixicred-dev-secrets"
+            FAIL=1
+          fi
+          [ "$FAIL" -eq 0 ] && echo "✅ Secrets populated"
+          exit "$FAIL"
+
+      - name: Check DATABASE_URL connectivity
+        run: |
+          sudo apt-get install -y postgresql-client -q
+          psql "$DATABASE_URL" --no-psqlrc -c "SELECT 1" >/dev/null \
+            && echo "✅ Database reachable" \
+            || (echo "❌ Cannot connect to Supabase database"; exit 1)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  # ── Sync DATABASE_URL + Run migrations on dev ─────────────────────────────
   migrate-dev:
     name: Migrate (dev)
     runs-on: ubuntu-latest
-    needs: [build-backend, ng-lint-build]
+    needs: [pre-deploy-check]
     if: github.ref == 'refs/heads/main'
     environment: dev
     steps:
@@ -140,15 +215,23 @@ jobs:
 
       - run: npm ci
 
-      - name: Fetch MIGRATIONS_DATABASE_URL from Secrets Manager
+      - name: Sync DATABASE_URL to Secrets Manager
         run: |
-          MIGRATIONS_DATABASE_URL=$(aws secretsmanager get-secret-value \
+          CURRENT=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-dev-secrets" \
-            --query 'SecretString' --output text | jq -r '.MIGRATIONS_DATABASE_URL')
-          echo "DATABASE_URL=${MIGRATIONS_DATABASE_URL}" >> "$GITHUB_ENV"
+            --query "SecretString" --output text)
+          UPDATED=$(echo "$CURRENT" | jq --arg url "$DATABASE_URL" '. + {DATABASE_URL: $url}')
+          aws secretsmanager put-secret-value \
+            --secret-id "pixicred-dev-secrets" \
+            --secret-string "$UPDATED"
+          echo "✅ DATABASE_URL synced to pixicred-dev-secrets"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Sync migrations to S3 audit trail
         run: aws s3 sync prisma/migrations/ s3://pixicred-dev-migrations/
@@ -191,11 +274,7 @@ jobs:
         working-directory: infra/terraform/envs/dev
         run: |
           terraform init
-          terraform apply -auto-approve \
-            -var="vpc_id=${{ secrets.VPC_ID }}" \
-            -var="subnet_ids=${{ secrets.SUBNET_IDS }}" \
-            -var="db_password=${{ secrets.DB_PASSWORD }}" \
-            -var="acm_certificate_arn=${{ secrets.ACM_CERTIFICATE_ARN }}"
+          terraform apply -auto-approve
 
   # ── Deploy frontend to dev ────────────────────────────────────────────────
   deploy-frontend-dev:
@@ -254,7 +333,7 @@ jobs:
       - name: Run integration tests
         run: npm run test:integration
         env:
-          API_URL: https://api.pixicred.com
+          API_URL: https://api.dev.pixicred.com
 
   # ── Manual approval gate for prod ────────────────────────────────────────
   approve-prod:
@@ -297,7 +376,7 @@ jobs:
           path: frontend/dist/
           retention-days: 1
 
-  # ── Run migrations on prod ────────────────────────────────────────────────
+  # ── Sync DATABASE_URL + Run migrations on prod ────────────────────────────
   migrate-prod:
     name: Migrate (prod)
     runs-on: ubuntu-latest
@@ -320,15 +399,23 @@ jobs:
 
       - run: npm ci
 
-      - name: Fetch MIGRATIONS_DATABASE_URL from Secrets Manager
+      - name: Sync DATABASE_URL to Secrets Manager
         run: |
-          MIGRATIONS_DATABASE_URL=$(aws secretsmanager get-secret-value \
+          CURRENT=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-prod-secrets" \
-            --query 'SecretString' --output text | jq -r '.MIGRATIONS_DATABASE_URL')
-          echo "DATABASE_URL=${MIGRATIONS_DATABASE_URL}" >> "$GITHUB_ENV"
+            --query "SecretString" --output text)
+          UPDATED=$(echo "$CURRENT" | jq --arg url "$DATABASE_URL" '. + {DATABASE_URL: $url}')
+          aws secretsmanager put-secret-value \
+            --secret-id "pixicred-prod-secrets" \
+            --secret-string "$UPDATED"
+          echo "✅ DATABASE_URL synced to pixicred-prod-secrets"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Sync migrations to S3 audit trail
         run: aws s3 sync prisma/migrations/ s3://pixicred-prod-migrations/
@@ -371,11 +458,7 @@ jobs:
         working-directory: infra/terraform/envs/prod
         run: |
           terraform init
-          terraform apply -auto-approve \
-            -var="vpc_id=${{ secrets.VPC_ID }}" \
-            -var="subnet_ids=${{ secrets.SUBNET_IDS }}" \
-            -var="db_password=${{ secrets.DB_PASSWORD }}" \
-            -var="acm_certificate_arn=${{ secrets.ACM_CERTIFICATE_ARN }}"
+          terraform apply -auto-approve
 
   # ── Deploy frontend to prod ───────────────────────────────────────────────
   deploy-frontend-prod:

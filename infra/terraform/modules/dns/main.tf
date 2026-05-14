@@ -8,6 +8,7 @@ terraform {
 }
 
 resource "aws_route53_record" "apex" {
+  count   = var.create_apex_records ? 1 : 0
   zone_id = var.hosted_zone_id
   name    = "pixicred.com"
   type    = "A"
@@ -20,6 +21,7 @@ resource "aws_route53_record" "apex" {
 }
 
 resource "aws_route53_record" "www" {
+  count   = var.create_apex_records ? 1 : 0
   zone_id = var.hosted_zone_id
   name    = "www.pixicred.com"
   type    = "A"
@@ -33,7 +35,7 @@ resource "aws_route53_record" "www" {
 
 resource "aws_route53_record" "api" {
   zone_id = var.hosted_zone_id
-  name    = "api.pixicred.com"
+  name    = var.api_subdomain
   type    = "A"
 
   alias {

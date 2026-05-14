@@ -5,7 +5,8 @@ variable "env" {
 
 variable "acm_certificate_arn" {
   type        = string
-  description = "ACM certificate ARN in us-east-1 (required for CloudFront)"
+  description = "ACM certificate ARN in us-east-1 (used for prod CloudFront; ignored for dev)"
+  default     = null
 }
 
 variable "hosted_zone_id" {

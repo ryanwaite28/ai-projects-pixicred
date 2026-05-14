@@ -20,19 +20,13 @@ describe('getConfig', () => {
 
   it('returns env vars directly when ENVIRONMENT is local', async () => {
     vi.stubEnv('ENVIRONMENT', 'local');
-    vi.stubEnv('DB_HOST', 'localhost');
-    vi.stubEnv('DB_PORT', '5432');
-    vi.stubEnv('DB_NAME', 'pixicred');
-    vi.stubEnv('DB_IAM_USER', 'pixicred_app');
+    vi.stubEnv('DATABASE_URL', 'postgresql://user:pass@localhost:5432/pixicred');
     vi.stubEnv('JWT_SECRET', 'test-secret');
 
     const config = await getConfig();
 
     expect(config).toEqual({
-      DB_HOST: 'localhost',
-      DB_PORT: '5432',
-      DB_NAME: 'pixicred',
-      DB_IAM_USER: 'pixicred_app',
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/pixicred',
       JWT_SECRET: 'test-secret',
     });
   });
@@ -43,10 +37,7 @@ describe('getConfig', () => {
 
     mockSend.mockResolvedValue({
       SecretString: JSON.stringify({
-        DB_HOST: 'rds.example.com',
-        DB_PORT: '5432',
-        DB_NAME: 'pixicred',
-        DB_IAM_USER: 'pixicred_app',
+        DATABASE_URL: 'postgresql://user:pass@supabase.co:6543/postgres',
         JWT_SECRET: 'prod-secret',
       }),
     });
@@ -62,10 +53,7 @@ describe('getConfig', () => {
 
     mockSend.mockResolvedValue({
       SecretString: JSON.stringify({
-        DB_HOST: 'rds.example.com',
-        DB_PORT: '5432',
-        DB_NAME: 'pixicred',
-        DB_IAM_USER: 'pixicred_app',
+        DATABASE_URL: 'postgresql://user:pass@supabase.co:6543/postgres',
         JWT_SECRET: 'my-jwt-secret',
       }),
     });
@@ -81,10 +69,7 @@ describe('getConfig', () => {
 
     mockSend.mockResolvedValue({
       SecretString: JSON.stringify({
-        DB_HOST: 'rds.example.com',
-        DB_PORT: '5432',
-        DB_NAME: 'pixicred',
-        DB_IAM_USER: 'pixicred_app',
+        DATABASE_URL: 'postgresql://user:pass@supabase.co:6543/postgres',
         JWT_SECRET: 'cached-secret',
       }),
     });

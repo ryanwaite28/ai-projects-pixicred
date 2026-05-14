@@ -40,19 +40,24 @@ jobs:
 
       - run: npm ci
 
-      - name: Generate Prisma client
-        run: npm run db:generate
-
-      - name: Fetch MIGRATIONS_DATABASE_URL from Secrets Manager
+      - name: Sync DATABASE_URL to Secrets Manager
         run: |
           ENV="${{ github.event.inputs.environment || 'dev' }}"
-          MIGRATIONS_DATABASE_URL=$(aws secretsmanager get-secret-value \
+          CURRENT=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-${ENV}-secrets" \
-            --query 'SecretString' --output text | jq -r '.MIGRATIONS_DATABASE_URL')
-          echo "DATABASE_URL=${MIGRATIONS_DATABASE_URL}" >> "$GITHUB_ENV"
+            --query "SecretString" --output text)
+          UPDATED=$(echo "$CURRENT" | jq --arg url "$DATABASE_URL" '. + {DATABASE_URL: $url}')
+          aws secretsmanager put-secret-value \
+            --secret-id "pixicred-${ENV}-secrets" \
+            --secret-string "$UPDATED"
+          echo "✅ DATABASE_URL synced to pixicred-${ENV}-secrets"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Sync migrations to S3 audit trail
         run: |

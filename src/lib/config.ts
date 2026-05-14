@@ -1,10 +1,7 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
 export interface AppConfig {
-  DB_HOST: string;
-  DB_PORT: string;
-  DB_NAME: string;
-  DB_IAM_USER: string;
+  DATABASE_URL: string;
   JWT_SECRET: string;
 }
 
@@ -15,11 +12,8 @@ export function getConfig(): Promise<AppConfig> {
 
   if (process.env['ENVIRONMENT'] === 'local') {
     configPromise = Promise.resolve({
-      DB_HOST:     process.env['DB_HOST']!,
-      DB_PORT:     process.env['DB_PORT']!,
-      DB_NAME:     process.env['DB_NAME']!,
-      DB_IAM_USER: process.env['DB_IAM_USER']!,
-      JWT_SECRET:  process.env['JWT_SECRET']!,
+      DATABASE_URL: process.env['DATABASE_URL']!,
+      JWT_SECRET:   process.env['JWT_SECRET']!,
     });
   } else {
     configPromise = (async () => {

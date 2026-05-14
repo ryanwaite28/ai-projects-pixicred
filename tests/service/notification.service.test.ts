@@ -11,7 +11,6 @@ import {
   sendAutoCloseEmail,
   sendUserCloseEmail,
 } from '../../src/service/notification.service';
-import { PixiCredError } from '../../src/lib/errors';
 import { createApplication, updateApplicationStatus } from '../../src/db/queries/application.queries';
 import { createAccount } from '../../src/db/queries/account.queries';
 import { createTransaction } from '../../src/db/queries/transaction.queries';

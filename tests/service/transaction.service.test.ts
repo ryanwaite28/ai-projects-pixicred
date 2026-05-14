@@ -51,7 +51,6 @@ async function makeAccount(overrides: { status?: string; creditLimit?: number } 
 }
 
 const BASE_KEY = '00000000-0000-4000-8000-000000000001';
-const KEY_2    = '00000000-0000-4000-8000-000000000002';
 
 // ─── postCharge ───────────────────────────────────────────────────────────────
 

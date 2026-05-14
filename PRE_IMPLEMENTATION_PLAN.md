@@ -15,6 +15,9 @@
 | SES sender (primary) | `no-reply@pixicred.com` | FR-EMAIL-06; covered by verified domain identity `pixicred.com` |
 | SES sender (alt) | `pixicred@modernappsllc.com` | Additional verified email identity; usable as a from-address |
 | Custom API domain | `api.dev.pixicred.com`, `api.pixicred.com` | Deferred to Phase 8; API Gateway auto-URL works for all earlier phases |
+| Database | Supabase (external managed Postgres) | PaaS — no RDS provisioning, no IAM auth tokens; simple `DATABASE_URL` connection string |
+| Infra config delivery | AWS Parameter Store (SSM) | VPC ID, subnet IDs, ACM cert ARNs stored in SSM; Terraform reads via `data "aws_ssm_parameter"`; no GitHub secrets needed for these values |
+| DATABASE_URL flow | GitHub env secret → CI/CD → Secrets Manager → Lambda | CI syncs on every migrate run; Lambdas fetch from Secrets Manager at cold start |
 
 ---
 
@@ -85,17 +88,21 @@ chmod +x scripts/bootstrap.sh
 |---|---|---|
 | 1 | Pre-flight checks | Verifies AWS CLI, Terraform, Node, Docker, gh CLI |
 | 2 | AWS profile validation | Confirms profile `rmw-llc` authenticates to account `408141212087` |
-| 3 | `.env` file | Copies `.env.example` → `.env` if not already present |
-| 4 | Terraform state S3 buckets | `pixicred-dev-tf-state`, `pixicred-prod-tf-state` (versioning + AES-256 encryption) |
-| 5 | Terraform state DynamoDB tables | `pixicred-dev-tf-locks`, `pixicred-prod-tf-locks` (PAY_PER_REQUEST) |
-| 6 | Migrations audit trail S3 buckets | `pixicred-dev-migrations`, `pixicred-prod-migrations` (versioning + encryption) |
-| 7 | GitHub Actions OIDC provider | `token.actions.githubusercontent.com` in IAM (idempotent) |
-| 8 | GitHub Actions IAM role | `pixicred-github-actions` with `AdministratorAccess`; trust scoped to `ryanwaite28/ai-projects-pixicred` |
-| 9 | GitHub environment secret `AWS_ROLE_ARN` | Set per-environment (`dev`, `prod`, `prod-approval`) via `gh secret set --env` |
-| 10 | GitHub repo secret `AWS_REGION` | Set via `gh secret set` (same value for all environments) |
-| 11 | GitHub environments `dev`, `prod`, `prod-approval` | Created via `gh api`; `prod` and `prod-approval` require manual reviewer setup; `prod-approval` is the approval gate for downstream prod jobs |
-| 12 | Secrets Manager secrets | `pixicred-dev-secrets`, `pixicred-prod-secrets` with placeholder `DATABASE_URL` |
-| 13 | SES domain identity | `pixicred.com` domain identity created; DKIM records printed |
+| 3 | Verify pre-provisioned infra | Confirms Route 53 zone, ACM certs, SES identities exist — does not modify them |
+| 4 | `.env` file | Copies `.env.example` → `.env` if not already present |
+| 5 | Terraform state S3 buckets | `pixicred-dev-tf-state`, `pixicred-prod-tf-state` (versioning + AES-256 encryption) |
+| 6 | Terraform state DynamoDB tables | `pixicred-dev-tf-locks`, `pixicred-prod-tf-locks` (PAY_PER_REQUEST) |
+| 7 | Migrations audit trail S3 buckets | `pixicred-dev-migrations`, `pixicred-prod-migrations` (versioning + encryption) |
+| 8 | Shared VPC | `pixicred` VPC (10.0.0.0/16) with DNS hostnames enabled; shared by dev + prod |
+| 9 | Subnets | `pixicred-subnet-1a` (us-east-1a, 10.0.1.0/24), `pixicred-subnet-1b` (us-east-1b, 10.0.2.0/24) |
+| 10 | SSM Parameters | `/pixicred/vpc_id`, `/pixicred/subnet_ids`, `/pixicred/dev/acm_certificate_arn`, `/pixicred/prod/acm_certificate_arn` |
+| 11 | GitHub Actions OIDC provider | `token.actions.githubusercontent.com` in IAM (idempotent) |
+| 12 | GitHub Actions IAM role | `pixicred-github-actions` with `AdministratorAccess`; trust scoped to `ryanwaite28/ai-projects-pixicred` |
+| 13 | GitHub environment secret `AWS_ROLE_ARN` | Set per-environment (`dev`, `prod`, `prod-approval`) via `gh secret set --env` |
+| 14 | GitHub repo secret `AWS_REGION` | Set via `gh secret set` (same value for all environments) |
+| 15 | GitHub environments `dev`, `prod`, `prod-approval` | Created via `gh api`; `prod-approval` requires manual reviewer setup |
+| 16 | Secrets Manager secrets | `pixicred-dev-secrets`, `pixicred-prod-secrets` with placeholder `DATABASE_URL` and generated `JWT_SECRET` |
+| 17 | SES domain identity | `pixicred.com` domain identity created if missing; DKIM records printed |
 
 > **Note on Terraform state bootstrap**: `bootstrap.sh` uses the AWS CLI directly (not the `infra/terraform/bootstrap/` Terraform module) because the module doesn't exist until Phase 0 scaffold is written. The Terraform module serves as the auditable, version-controlled record of what bootstrap.sh provisioned. After Phase 0 is complete, the module can be imported to bring bootstrap resources under Terraform management if desired.
 
@@ -136,6 +143,8 @@ Both certificates cover the apex domain (`pixicred.com`) and wildcard (`*.pixicr
 | dev | `arn:aws:acm:us-east-1:408141212087:certificate/09299ef4-d8c9-4e84-b0d1-442dc3ef91ad` | ✅ Issued |
 | prod | `arn:aws:acm:us-east-1:408141212087:certificate/856c4408-d285-4df3-b694-65d4aef299ba` | ✅ Issued |
 
+ACM cert ARNs are stored in SSM Parameter Store by `bootstrap.sh`. Terraform reads them via `data "aws_ssm_parameter"` — no Terraform variables or GitHub secrets needed for these values.
+
 ### SES Identities
 
 | Identity | ARN | Status |
@@ -162,7 +171,18 @@ bootstrap.sh creates all three environments (`dev`, `prod`, `prod-approval`) but
 
 `prod-approval` is the single approval gate for all prod work. Approve once there; every downstream prod job then runs automatically against the `prod` environment without additional prompts. `prod` itself has no required reviewers.
 
-### 3. Request SES production access (required to send to unverified recipients)
+### 3. Add `DATABASE_URL` secrets to GitHub environments
+
+The `DATABASE_URL` is the Supabase connection pooler URL. It is managed as a GitHub environment secret (not a repository secret) so dev and prod use different databases.
+
+- GitHub repo → Settings → Environments → `dev` → Add secret:
+  - Name: `DATABASE_URL`
+  - Value: `<Supabase dev connection pooler URL>`
+- Repeat for `prod` environment with the prod Supabase URL.
+
+CI/CD syncs this value to Secrets Manager (`pixicred-{env}-secrets`) on every migrate and deploy run, so Lambdas can fetch it at cold start.
+
+### 4. Request SES production access (required to send to unverified recipients)
 
 By default, new AWS accounts are in SES sandbox mode. In sandbox mode, you can only send to verified email addresses. For a portfolio project where you control all test recipient addresses, sandbox mode may be acceptable — just verify your test email addresses:
 
@@ -178,7 +198,7 @@ To send to arbitrary recipients (required for production use):
 - AWS Console → SES → Account dashboard → Request production access
 - Typically approved within 24 hours
 
-### 4. Set up GitHub CLI authentication (required for bootstrap.sh steps 9–11)
+### 5. Set up GitHub CLI authentication (required for bootstrap.sh steps 13–15)
 
 ```bash
 gh auth login
@@ -200,7 +220,7 @@ BEFORE Phase 0:
   1. Install local toolchain (Node 20, Docker, AWS CLI, Terraform, gh)
   2. Configure AWS CLI profile 'rmw-llc'
   3. Run: ./scripts/bootstrap.sh
-  4. Complete post-bootstrap manual steps (SES DNS, GitHub env reviewer)
+  4. Complete post-bootstrap manual steps (GitHub env reviewer, DATABASE_URL secrets)
   5. Verify: aws sts get-caller-identity --profile rmw-llc
 
 Phase 0 — scaffold code (see specs/00-scaffold.md):
@@ -214,79 +234,65 @@ Phases 1–7 — domain implementation:
   • Local development uses docker-compose + MiniStack only
   • No real AWS resources needed beyond what bootstrap.sh created
 
-Phase 8 — DevOps & Hardening (see specs/10-infrastructure.md):
+Phase 8 — DevOps & Hardening (see specs/10b-devops-hardening.md):
   • Run: terraform init && terraform apply on infra/terraform/envs/dev/
-  • After terraform apply: update Secrets Manager DATABASE_URL (see below)
-  • Run: prisma migrate deploy against dev RDS
-  • Configure custom domain (optional, see below)
+  • Lambda packages S3 bucket must exist before terraform apply (bootstrap.sh creates it)
+  • After terraform apply: CI/CD syncs DATABASE_URL from GitHub env secret to Secrets Manager
+  • Run: prisma migrate deploy via migrate.yml or CI pipeline
 ```
 
 ---
 
-## Post-Terraform (Phase 8) Steps
+## Database: Supabase (Managed Postgres)
 
-These are only relevant during Phase 8 when the full AWS infrastructure is provisioned.
+PixiCred uses **Supabase** as the managed Postgres provider for both dev and prod. No RDS instances to provision or manage.
 
-### Update Secrets Manager after RDS provisioning
+### Connection
 
-The application uses **RDS IAM authentication** (no static DB password for the app). The `migrations-db-user` uses a password managed by Secrets Manager. After `terraform apply` completes:
+Lambdas connect via the Supabase **connection pooler** URL (port 6543, transaction mode via PgBouncer):
 
-#### Step 1 — Populate Secrets Manager with RDS connection details
-
-```bash
-# Get RDS endpoint from Terraform output
-RDS_ENDPOINT=$(terraform -chdir=infra/terraform/envs/dev output -raw rds_endpoint)
-MIGRATIONS_PASSWORD="<choose-a-strong-password>"
-
-aws secretsmanager put-secret-value \
-  --secret-id pixicred-dev-secrets \
-  --secret-string "{
-    \"DB_HOST\": \"${RDS_ENDPOINT}\",
-    \"DB_PORT\": \"5432\",
-    \"DB_NAME\": \"pixicred\",
-    \"DB_IAM_USER\": \"pixicred_app\",
-    \"MIGRATIONS_DATABASE_URL\": \"postgresql://migrations-db-user:${MIGRATIONS_PASSWORD}@${RDS_ENDPOINT}:5432/pixicred?sslmode=require\",
-    \"JWT_SECRET\": \"<generate-with: openssl rand -hex 32>\"
-  }" \
-  --region us-east-1 \
-  --profile rmw-llc
+```
+postgresql://postgres.<project-ref>:<password>@aws-1-us-east-1.pooler.supabase.com:6543/postgres
 ```
 
-Repeat for `pixicred-prod-secrets` after the prod Terraform apply.
+This URL is stored as:
+- A GitHub environment secret (`DATABASE_URL`) per environment (dev/prod)
+- A key in `pixicred-{env}-secrets` Secrets Manager secret (synced by CI/CD on every migrate/deploy run)
 
-#### Step 2 — Create PostgreSQL database users (run once per environment)
+### Secrets Manager structure
 
-Connect to RDS as the master user (Terraform outputs the master username/password or it is in Secrets Manager via Terraform):
+`pixicred-{env}-secrets` contains exactly two keys:
 
-```sql
--- IAM-authenticated app user (no password — auth via RDS IAM token)
-CREATE USER pixicred_app;
-GRANT rds_iam TO pixicred_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO pixicred_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pixicred_app;
-
--- Migrations user (password-based; Secrets Manager manages the password)
-CREATE USER "migrations-db-user" WITH PASSWORD '<same password used in MIGRATIONS_DATABASE_URL>';
-GRANT ALL PRIVILEGES ON DATABASE pixicred TO "migrations-db-user";
-GRANT ALL PRIVILEGES ON SCHEMA public TO "migrations-db-user";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT ALL ON TABLES TO "migrations-db-user";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO "migrations-db-user";
+```json
+{
+  "DATABASE_URL": "postgresql://postgres.<ref>:<pass>@aws-1-us-east-1.pooler.supabase.com:6543/postgres",
+  "JWT_SECRET":   "<32-byte hex string generated by bootstrap.sh>"
+}
 ```
 
-`pixicred_app` is for runtime reads/writes only (no DDL). `migrations-db-user` has full DDL and is used exclusively by the `migrate.yml` CI/CD workflow.
+`JWT_SECRET` is generated once by `bootstrap.sh` and never rotated automatically. `DATABASE_URL` is written by CI/CD and never manually edited in Secrets Manager.
 
-### Custom API domain setup (optional, Phase 8)
+### No database user setup required
 
-To use `api.dev.pixicred.com` and `api.pixicred.com`:
+Supabase provides a fully provisioned Postgres instance. No `CREATE USER`, no IAM grants, no `rds_iam` setup. The `DATABASE_URL` is the only credential needed.
 
-1. **Route 53 hosted zone** — ✅ already provisioned (`Z0511624US25VOVRIJF3`); NS delegation complete.
-2. **ACM certificates** — ✅ already issued (see Pre-Provisioned Infrastructure above); both dev and prod certs cover `pixicred.com` and `*.pixicred.com` in `us-east-1`. Reference these ARNs in Terraform — do not request new certs.
-3. **API Gateway custom domain** — wired in Terraform env modules during Phase 8; Terraform will create Route 53 A/CNAME alias records automatically.
+---
 
-If skipping custom domain, API Gateway provides a URL like `https://{id}.execute-api.us-east-1.amazonaws.com` and no further setup is needed.
+## Terraform: Infra Config from SSM
+
+Terraform env modules (`infra/terraform/envs/dev/main.tf`, `infra/terraform/envs/prod/main.tf`) read shared infra config from SSM at plan time:
+
+```hcl
+data "aws_ssm_parameter" "acm_certificate_arn" {
+  name = "/pixicred/${local.env}/acm_certificate_arn"
+}
+
+data "aws_ssm_parameter" "vpc_id" {
+  name = "/pixicred/vpc_id"
+}
+```
+
+These replace all `var.vpc_id`, `var.acm_certificate_arn`, and `var.subnet_ids` Terraform variables. The CI/CD `terraform apply` calls require no `-var` flags.
 
 ---
 
@@ -310,15 +316,28 @@ aws dynamodb describe-table --table-name pixicred-prod-tf-locks --profile rmw-ll
 aws s3 ls s3://pixicred-dev-migrations --profile rmw-llc
 aws s3 ls s3://pixicred-prod-migrations --profile rmw-llc
 
+# Shared VPC exists
+aws ec2 describe-vpcs \
+  --filters "Name=tag:Name,Values=pixicred" \
+  --profile rmw-llc \
+  --query 'Vpcs[0].VpcId'
+
+# SSM parameters exist
+aws ssm get-parameter --name /pixicred/vpc_id --profile rmw-llc --query 'Parameter.Value'
+aws ssm get-parameter --name /pixicred/subnet_ids --profile rmw-llc --query 'Parameter.Value'
+aws ssm get-parameter --name /pixicred/dev/acm_certificate_arn --profile rmw-llc --query 'Parameter.Value'
+aws ssm get-parameter --name /pixicred/prod/acm_certificate_arn --profile rmw-llc --query 'Parameter.Value'
+
 # OIDC provider exists
 aws iam list-open-id-connect-providers --profile rmw-llc | grep token.actions.githubusercontent.com
 
 # GitHub Actions IAM role exists
 aws iam get-role --role-name pixicred-github-actions --profile rmw-llc --query 'Role.Arn'
 
-# Secrets Manager secrets exist
-aws secretsmanager describe-secret --secret-id pixicred-dev-secrets --profile rmw-llc --query 'Name'
-aws secretsmanager describe-secret --secret-id pixicred-prod-secrets --profile rmw-llc --query 'Name'
+# Secrets Manager secrets exist with JWT_SECRET
+aws secretsmanager get-secret-value --secret-id pixicred-dev-secrets --profile rmw-llc --query 'SecretString' | jq -r 'fromjson | keys'
+# Expected: ["DATABASE_URL", "JWT_SECRET"]
+aws secretsmanager get-secret-value --secret-id pixicred-prod-secrets --profile rmw-llc --query 'SecretString' | jq -r 'fromjson | keys'
 
 # SES domain identity exists and verified
 aws sesv2 get-email-identity --email-identity pixicred.com --profile rmw-llc --query 'VerifiedForSendingStatus'
@@ -346,6 +365,8 @@ aws acm describe-certificate \
 
 # Local .env exists
 test -f .env && echo ".env: OK" || echo ".env: MISSING — run bootstrap.sh"
+
+# DATABASE_URL GitHub env secrets — verify manually in repo Settings → Environments
 ```
 
 All commands should return without errors before proceeding to Phase 0.
@@ -379,13 +400,13 @@ The `profile = "rmw-llc"` line is non-negotiable — do not use `default`, `pixi
 
 ### Environment structure
 
-| Environment | Purpose | Has `AWS_ROLE_ARN` | Requires approval |
-|---|---|---|---|
-| `dev` | Dev deploys | ✅ (env-level secret) | No |
-| `prod-approval` | Single approval gate — approve here once, all downstream prod jobs run | ✅ (env-level secret) | ✅ Yes |
-| `prod` | Prod deploys — runs automatically after prod-approval is approved | ✅ (env-level secret) | No |
+| Environment | Purpose | Has `AWS_ROLE_ARN` | Has `DATABASE_URL` | Requires approval |
+|---|---|---|---|---|
+| `dev` | Dev deploys | ✅ (env-level secret) | ✅ (env-level secret) | No |
+| `prod-approval` | Single approval gate — approve here once, all downstream prod jobs run | ✅ (env-level secret) | No | ✅ Yes |
+| `prod` | Prod deploys — runs automatically after prod-approval is approved | ✅ (env-level secret) | ✅ (env-level secret) | No |
 
-`AWS_ROLE_ARN` is an **environment-level** secret. `AWS_REGION` is a **repo-level** secret (same value for all environments).
+`AWS_ROLE_ARN` and `DATABASE_URL` are **environment-level** secrets. `AWS_REGION` is a **repo-level** secret.
 
 ### Workflow pattern
 
@@ -398,7 +419,7 @@ permissions:
 
 jobs:
   deploy:
-    environment: dev   # or prod — AWS_ROLE_ARN is resolved from the environment's secrets
+    environment: dev   # or prod — AWS_ROLE_ARN and DATABASE_URL resolved from environment secrets
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:

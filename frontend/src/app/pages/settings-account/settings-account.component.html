@@ -85,9 +85,15 @@
 
 <!-- Confirmation modal -->
 @if (showModal()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center px-4"
-       style="background-color: rgba(15,23,42,0.6)" (click)="cancelModal()">
-    <div class="pxc-card w-full max-w-sm" (click)="$event.stopPropagation()">
+  <div class="fixed inset-0 z-40"
+       style="background-color: rgba(15,23,42,0.6)"
+       role="button"
+       tabindex="0"
+       aria-label="Close modal"
+       (click)="cancelModal()"
+       (keydown.escape)="cancelModal()"></div>
+  <div class="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+    <div class="pxc-card w-full max-w-sm pointer-events-auto">
 
       <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4"
            style="background-color: var(--color-pxc-error-bg)">

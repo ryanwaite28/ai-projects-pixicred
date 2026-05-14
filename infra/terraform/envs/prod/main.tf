@@ -5,6 +5,10 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_ssm_parameter" "acm_certificate_arn" {
+  name = "/pixicred/${local.env}/acm_certificate_arn"
+}
+
 locals {
   env    = "prod"
   region = "us-east-1"
@@ -59,11 +63,6 @@ locals {
         Effect   = "Allow"
         Action   = "secretsmanager:GetSecretValue"
         Resource = "arn:aws:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:pixicred-${local.env}-secrets*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = "rds-db:connect"
-        Resource = "arn:aws:rds-db:${local.region}:${data.aws_caller_identity.current.account_id}:dbuser:${module.rds.db_resource_id}/pixicred_app"
       }
     ]
   })
@@ -209,14 +208,6 @@ resource "aws_sqs_queue_policy" "notification_sns" {
   })
 }
 
-module "rds" {
-  source      = "../../modules/rds"
-  env         = local.env
-  db_password = var.db_password
-  vpc_id      = var.vpc_id
-  subnet_ids  = var.subnet_ids
-  tags        = local.tags
-}
 
 module "service_lambda" {
   source        = "../../modules/lambda"
@@ -493,7 +484,7 @@ module "api_gateway" {
   source              = "../../modules/api-gateway"
   name                = "pixicred-${local.env}-api"
   domain_name         = "api.pixicred.com"
-  acm_certificate_arn = var.acm_certificate_arn
+  acm_certificate_arn = data.aws_ssm_parameter.acm_certificate_arn.value
   tags                = local.tags
 
   integrations = {
@@ -566,7 +557,7 @@ module "api_gateway" {
 module "frontend" {
   source              = "../../modules/frontend"
   env                 = local.env
-  acm_certificate_arn = var.acm_certificate_arn
+  acm_certificate_arn = data.aws_ssm_parameter.acm_certificate_arn.value
   hosted_zone_id      = local.hosted_zone_id
   tags                = local.tags
 }
@@ -574,6 +565,8 @@ module "frontend" {
 module "dns" {
   source                     = "../../modules/dns"
   hosted_zone_id             = local.hosted_zone_id
+  api_subdomain              = "api.pixicred.com"
+  create_apex_records        = true
   cloudfront_domain_name     = module.frontend.cloudfront_domain_name
   cloudfront_hosted_zone_id  = module.frontend.cloudfront_hosted_zone_id
   api_gateway_domain_name    = module.api_gateway.domain_name_target

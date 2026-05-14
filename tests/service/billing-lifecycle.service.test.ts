@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { createTestPrisma, cleanTables } from '../db/helpers';
 import { runBillingLifecycle } from '../../src/service/billing-lifecycle.service';
-import { PixiCredError } from '../../src/lib/errors';
 import { createApplication, updateApplicationStatus } from '../../src/db/queries/application.queries';
 import { createAccount } from '../../src/db/queries/account.queries';
 import { createPaymentDueSchedule } from '../../src/db/queries/payment-due-schedule.queries';

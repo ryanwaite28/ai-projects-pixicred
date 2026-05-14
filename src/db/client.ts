@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { Signer } from '@aws-sdk/rds-signer';
 import { getConfig } from '../lib/config.js';
 
 let _prismaPromise: Promise<PrismaClient> | null = null;
@@ -9,15 +8,8 @@ async function buildPrismaClient(): Promise<PrismaClient> {
   if (process.env['ENVIRONMENT'] === 'local') {
     databaseUrl = process.env['DATABASE_URL']!;
   } else {
-    const { DB_HOST, DB_PORT, DB_NAME, DB_IAM_USER } = await getConfig();
-    const signer = new Signer({
-      hostname: DB_HOST,
-      port: Number(DB_PORT),
-      region: process.env['AWS_REGION'] ?? 'us-east-1',
-      username: DB_IAM_USER,
-    });
-    const token = await signer.getAuthToken();
-    databaseUrl = `postgresql://${DB_IAM_USER}:${encodeURIComponent(token)}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require`;
+    const { DATABASE_URL } = await getConfig();
+    databaseUrl = DATABASE_URL;
   }
   return new PrismaClient({ datasources: { db: { url: databaseUrl } } });
 }
