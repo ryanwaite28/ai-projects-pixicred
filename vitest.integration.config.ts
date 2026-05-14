@@ -19,6 +19,7 @@ export default defineConfig({
       'tests/service/**/*.test.ts',
     ],
     globalSetup: ['tests/db/globalSetup.ts'],
+    setupFiles: ['tests/integration.setup.ts'],
     globals: true,
     testTimeout: 120000,
     hookTimeout: 60000,
