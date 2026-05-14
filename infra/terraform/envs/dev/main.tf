@@ -2,6 +2,18 @@ provider "aws" {
   region = "us-east-1"
 }
 
+# These resources are pre-created by bootstrap.sh. Import them into state on
+# first apply so Terraform can manage them without trying to recreate them.
+import {
+  to = aws_s3_bucket.lambda_packages
+  id = "pixicred-dev-lambda-packages"
+}
+
+import {
+  to = aws_secretsmanager_secret.app_secrets
+  id = "pixicred-dev-secrets"
+}
+
 data "aws_caller_identity" "current" {}
 
 data "aws_ssm_parameter" "acm_certificate_arn" {
@@ -603,7 +615,7 @@ module "dns" {
 
 resource "aws_secretsmanager_secret" "app_secrets" {
   name        = "pixicred-${local.env}-secrets"
-  description = "Runtime secrets for PixiCred ${local.env} — DB_HOST, DB_PORT, DB_NAME, DB_IAM_USER, JWT_SECRET, MIGRATIONS_DATABASE_URL"
+  description = "Runtime secrets for PixiCred ${local.env} — DATABASE_URL_POOLER, DATABASE_URL_DIRECT, JWT_SECRET"
   tags        = local.tags
 }
 
