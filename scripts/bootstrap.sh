@@ -459,6 +459,34 @@ for ENV in "${ENVS[@]}"; do
   fi
 done
 
+# ── Lambda packages S3 buckets ─────────────────────────────────────────────────
+# CI/CD uploads Lambda ZIPs here before terraform apply picks them up.
+# The pre-deploy-check job asserts these buckets exist before any deployment.
+step "Lambda packages S3 buckets"
+
+for ENV in "${ENVS[@]}"; do
+  BUCKET="pixicred-${ENV}-lambda-packages"
+  if aws_cmd s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+    info "S3 bucket ${BUCKET}: already exists"
+  else
+    aws_cmd s3api create-bucket \
+      --bucket "$BUCKET" \
+      >/dev/null
+    aws_cmd s3api put-bucket-versioning \
+      --bucket "$BUCKET" \
+      --versioning-configuration Status=Enabled
+    aws_cmd s3api put-bucket-encryption \
+      --bucket "$BUCKET" \
+      --server-side-encryption-configuration \
+        '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"},"BucketKeyEnabled":true}]}'
+    aws_cmd s3api put-public-access-block \
+      --bucket "$BUCKET" \
+      --public-access-block-configuration \
+        'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
+    info "Created S3 bucket: ${BUCKET} (versioning + encryption + public-access-blocked)"
+  fi
+done
+
 # ── Shared VPC (pixicred — dev + prod share this) ─────────────────────────────
 # Lambdas are NOT placed in the VPC (Supabase is external); the VPC exists for
 # any future private resources (ElastiCache, RDS, etc.) and is referenced by SSM.
@@ -748,8 +776,10 @@ echo "     • pixicred-dev-tf-state   (S3, versioned, encrypted)"
 echo "     • pixicred-prod-tf-state  (S3, versioned, encrypted)"
 echo "     • pixicred-dev-tf-locks   (DynamoDB, PAY_PER_REQUEST)"
 echo "     • pixicred-prod-tf-locks  (DynamoDB, PAY_PER_REQUEST)"
-echo "     • pixicred-dev-migrations  (S3, versioned, encrypted)"
-echo "     • pixicred-prod-migrations (S3, versioned, encrypted)"
+echo "     • pixicred-dev-migrations       (S3, versioned, encrypted)"
+echo "     • pixicred-prod-migrations      (S3, versioned, encrypted)"
+echo "     • pixicred-dev-lambda-packages  (S3, versioned, encrypted)"
+echo "     • pixicred-prod-lambda-packages (S3, versioned, encrypted)"
 echo "     • VPC: pixicred (10.0.0.0/16, ${VPC_ID})"
 echo "     • Subnets: pixicred-subnet-1a (us-east-1a), pixicred-subnet-1b (us-east-1b)"
 echo "     • SSM /pixicred/vpc_id"

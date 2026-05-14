@@ -93,16 +93,17 @@ chmod +x scripts/bootstrap.sh
 | 5 | Terraform state S3 buckets | `pixicred-dev-tf-state`, `pixicred-prod-tf-state` (versioning + AES-256 encryption) |
 | 6 | Terraform state DynamoDB tables | `pixicred-dev-tf-locks`, `pixicred-prod-tf-locks` (PAY_PER_REQUEST) |
 | 7 | Migrations audit trail S3 buckets | `pixicred-dev-migrations`, `pixicred-prod-migrations` (versioning + encryption) |
-| 8 | Shared VPC | `pixicred` VPC (10.0.0.0/16) with DNS hostnames enabled; shared by dev + prod |
-| 9 | Subnets | `pixicred-subnet-1a` (us-east-1a, 10.0.1.0/24), `pixicred-subnet-1b` (us-east-1b, 10.0.2.0/24) |
-| 10 | SSM Parameters | `/pixicred/vpc_id`, `/pixicred/subnet_ids`, `/pixicred/dev/acm_certificate_arn`, `/pixicred/prod/acm_certificate_arn` |
-| 11 | GitHub Actions OIDC provider | `token.actions.githubusercontent.com` in IAM (idempotent) |
-| 12 | GitHub Actions IAM role | `pixicred-github-actions` with `AdministratorAccess`; trust scoped to `ryanwaite28/ai-projects-pixicred` |
-| 13 | GitHub environment secret `AWS_ROLE_ARN` | Set per-environment (`dev`, `prod`, `prod-approval`) via `gh secret set --env` |
-| 14 | GitHub repo secret `AWS_REGION` | Set via `gh secret set` (same value for all environments) |
-| 15 | GitHub environments `dev`, `prod`, `prod-approval` | Created via `gh api`; `prod-approval` requires manual reviewer setup |
-| 16 | Secrets Manager secrets | `pixicred-dev-secrets`, `pixicred-prod-secrets` with placeholder `DATABASE_URL` and generated `JWT_SECRET` |
-| 17 | SES domain identity | `pixicred.com` domain identity created if missing; DKIM records printed |
+| 8 | Lambda packages S3 buckets | `pixicred-dev-lambda-packages`, `pixicred-prod-lambda-packages` (versioning + encryption); required by pre-deploy-check and deploy jobs |
+| 9 | Shared VPC | `pixicred` VPC (10.0.0.0/16) with DNS hostnames enabled; shared by dev + prod |
+| 10 | Subnets | `pixicred-subnet-1a` (us-east-1a, 10.0.1.0/24), `pixicred-subnet-1b` (us-east-1b, 10.0.2.0/24) |
+| 11 | SSM Parameters | `/pixicred/vpc_id`, `/pixicred/subnet_ids`, `/pixicred/dev/acm_certificate_arn`, `/pixicred/prod/acm_certificate_arn` |
+| 12 | GitHub Actions OIDC provider | `token.actions.githubusercontent.com` in IAM (idempotent) |
+| 13 | GitHub Actions IAM role | `pixicred-github-actions` with `AdministratorAccess`; trust scoped to `ryanwaite28/ai-projects-pixicred` |
+| 14 | GitHub environment secret `AWS_ROLE_ARN` | Set per-environment (`dev`, `prod`, `prod-approval`) via `gh secret set --env` |
+| 15 | GitHub repo secret `AWS_REGION` | Set via `gh secret set` (same value for all environments) |
+| 16 | GitHub environments `dev`, `prod`, `prod-approval` | Created via `gh api`; `prod-approval` requires manual reviewer setup |
+| 17 | Secrets Manager secrets | `pixicred-dev-secrets`, `pixicred-prod-secrets` with placeholder `DATABASE_URL` and generated `JWT_SECRET` |
+| 18 | SES domain identity | `pixicred.com` domain identity created if missing; DKIM records printed |
 
 > **Note on Terraform state bootstrap**: `bootstrap.sh` uses the AWS CLI directly (not the `infra/terraform/bootstrap/` Terraform module) because the module doesn't exist until Phase 0 scaffold is written. The Terraform module serves as the auditable, version-controlled record of what bootstrap.sh provisioned. After Phase 0 is complete, the module can be imported to bring bootstrap resources under Terraform management if desired.
 
