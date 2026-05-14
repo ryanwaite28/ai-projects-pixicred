@@ -13,6 +13,10 @@ export class NavbarComponent {
 
   protected readonly accountId = this.auth.getAccountId();
 
+  protected get isLoggedIn(): boolean {
+    return this.auth.isAuthenticated();
+  }
+
   protected logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);

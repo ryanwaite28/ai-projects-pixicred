@@ -3,11 +3,10 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { AccountService, Account, Transaction } from '../../services/account.service';
-import { NavbarComponent } from '../../components/navbar/navbar.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, CurrencyPipe, DatePipe, RouterLink, NavbarComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, RouterLink],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {

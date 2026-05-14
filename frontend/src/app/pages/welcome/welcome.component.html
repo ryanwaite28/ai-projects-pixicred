@@ -1,15 +1,4 @@
-<div class="min-h-screen flex flex-col" style="background-color: var(--color-pxc-slate)">
-
-  <!-- Top bar -->
-  <header class="pxc-topbar">
-    <span class="pxc-logo">Pixi<span>Cred</span></span>
-    <a routerLink="/login" class="pxc-btn-secondary text-xs px-4 py-2"
-       style="color: white; background: transparent; border-color: rgba(255,255,255,0.2)">
-      Sign in
-    </a>
-  </header>
-
-  <!-- Farewell banner -->
+<!-- Farewell banner -->
   @if (showFarewell()) {
     <div class="pxc-alert error flex items-start gap-3 px-6 py-4 rounded-none border-b"
          style="background-color: var(--color-pxc-error-bg); border-color: #fca5a5">
@@ -98,12 +87,3 @@
 
     </div>
   </section>
-
-  <!-- Footer -->
-  <footer class="mt-auto border-t py-8 text-center text-xs"
-          style="border-color: var(--color-pxc-border); color: var(--color-pxc-muted)">
-    © {{ year }} PixiCred. All rights reserved. &nbsp;·&nbsp;
-    <a routerLink="/login" class="pxc-link text-xs">Sign in</a>
-  </footer>
-
-</div>

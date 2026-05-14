@@ -3,11 +3,10 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { AccountService, PaymentResult } from '../../services/account.service';
-import { NavbarComponent } from '../../components/navbar/navbar.component';
 
 @Component({
   selector: 'app-payments',
-  imports: [CommonModule, CurrencyPipe, ReactiveFormsModule, NavbarComponent],
+  imports: [CommonModule, CurrencyPipe, ReactiveFormsModule],
   templateUrl: './payments.component.html',
 })
 export class PaymentsComponent implements OnInit {

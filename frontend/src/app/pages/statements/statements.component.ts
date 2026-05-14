@@ -2,11 +2,10 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { AccountService, Statement, StatementDetail } from '../../services/account.service';
-import { NavbarComponent } from '../../components/navbar/navbar.component';
 
 @Component({
   selector: 'app-statements',
-  imports: [CommonModule, CurrencyPipe, DatePipe, NavbarComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe],
   templateUrl: './statements.component.html',
 })
 export class StatementsComponent implements OnInit {

@@ -122,25 +122,25 @@ html, body {
   .pxc-badge { @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full; }
 
   .pxc-badge-success {
-    @apply pxc-badge;
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
     background-color: var(--color-pxc-success-bg);
     color: #15803d;
   }
 
   .pxc-badge-error {
-    @apply pxc-badge;
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
     background-color: var(--color-pxc-error-bg);
     color: #b91c1c;
   }
 
   .pxc-badge-warning {
-    @apply pxc-badge;
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
     background-color: var(--color-pxc-warning-bg);
     color: #92400e;
   }
 
   .pxc-badge-neutral {
-    @apply pxc-badge;
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
     background-color: #f1f5f9;
     color: var(--color-pxc-muted);
   }

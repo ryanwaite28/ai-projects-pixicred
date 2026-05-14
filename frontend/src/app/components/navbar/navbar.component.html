@@ -1,32 +1,43 @@
-<nav class="pxc-topbar">
-  <!-- Logo -->
-  <a routerLink="/dashboard" class="pxc-logo shrink-0">Pixi<span>Cred</span></a>
-
-  <!-- Nav links -->
-  <div class="hidden md:flex items-center gap-1">
-    <a routerLink="/dashboard"    routerLinkActive="nav-active" class="nav-link">Dashboard</a>
-    <a routerLink="/transactions" routerLinkActive="nav-active" class="nav-link">Transactions</a>
-    <a routerLink="/payments"     routerLinkActive="nav-active" class="nav-link">Payments</a>
-    <a routerLink="/statements"   routerLinkActive="nav-active" class="nav-link">Statements</a>
-  </div>
-
-  <!-- Right side -->
-  <div class="flex items-center gap-3">
-    <div class="hidden sm:flex items-center gap-2">
-      <a routerLink="/settings/account" routerLinkActive="nav-active" class="nav-link text-xs">Settings</a>
+@if (isLoggedIn) {
+  <!-- Authenticated nav -->
+  <nav class="pxc-topbar">
+    <a routerLink="/dashboard" class="pxc-logo shrink-0">Pixi<span>Cred</span></a>
+    <div class="hidden md:flex items-center gap-1">
+      <a routerLink="/dashboard"    routerLinkActive="nav-active" class="nav-link">Dashboard</a>
+      <a routerLink="/transactions" routerLinkActive="nav-active" class="nav-link">Transactions</a>
+      <a routerLink="/payments"     routerLinkActive="nav-active" class="nav-link">Payments</a>
+      <a routerLink="/statements"   routerLinkActive="nav-active" class="nav-link">Statements</a>
     </div>
-    <button (click)="logout()" class="pxc-btn-ghost text-xs" style="color: #94a3b8">
-      Sign out
-    </button>
+    <div class="flex items-center gap-3">
+      <a routerLink="/settings/account" routerLinkActive="nav-active" class="hidden sm:inline-flex nav-link text-xs">Settings</a>
+      <button (click)="logout()" class="pxc-btn-ghost text-xs" style="color: #94a3b8">Sign out</button>
+    </div>
+  </nav>
+  <div class="flex md:hidden border-b overflow-x-auto"
+       style="background-color: var(--color-pxc-navy-light); border-color: rgba(255,255,255,0.08)">
+    <a routerLink="/dashboard"        routerLinkActive="nav-active" class="nav-link-mobile">Dashboard</a>
+    <a routerLink="/transactions"     routerLinkActive="nav-active" class="nav-link-mobile">Transactions</a>
+    <a routerLink="/payments"         routerLinkActive="nav-active" class="nav-link-mobile">Payments</a>
+    <a routerLink="/statements"       routerLinkActive="nav-active" class="nav-link-mobile">Statements</a>
+    <a routerLink="/settings/account" routerLinkActive="nav-active" class="nav-link-mobile">Settings</a>
   </div>
-</nav>
-
-<!-- Mobile nav -->
-<div class="flex md:hidden border-b overflow-x-auto"
-     style="background-color: var(--color-pxc-navy-light); border-color: rgba(255,255,255,0.08)">
-  <a routerLink="/dashboard"    routerLinkActive="nav-active" class="nav-link-mobile">Dashboard</a>
-  <a routerLink="/transactions" routerLinkActive="nav-active" class="nav-link-mobile">Transactions</a>
-  <a routerLink="/payments"     routerLinkActive="nav-active" class="nav-link-mobile">Payments</a>
-  <a routerLink="/statements"   routerLinkActive="nav-active" class="nav-link-mobile">Statements</a>
-  <a routerLink="/settings/account" routerLinkActive="nav-active" class="nav-link-mobile">Settings</a>
-</div>
+} @else {
+  <!-- Public nav -->
+  <nav class="pxc-topbar">
+    <a routerLink="/" class="pxc-logo shrink-0">Pixi<span>Cred</span></a>
+    <div class="hidden md:flex items-center gap-1">
+      <a routerLink="/apply"        class="nav-link">Apply</a>
+      <a routerLink="/apply/status" class="nav-link">Check Status</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a routerLink="/login" class="pxc-btn-ghost text-xs" style="color: #94a3b8">Sign in</a>
+      <a routerLink="/apply" class="pxc-btn-primary text-xs px-4 py-2">Apply now</a>
+    </div>
+  </nav>
+  <div class="flex md:hidden border-b overflow-x-auto"
+       style="background-color: var(--color-pxc-navy-light); border-color: rgba(255,255,255,0.08)">
+    <a routerLink="/apply"        class="nav-link-mobile">Apply</a>
+    <a routerLink="/apply/status" class="nav-link-mobile">Check Status</a>
+    <a routerLink="/login"        class="nav-link-mobile">Sign In</a>
+  </div>
+}

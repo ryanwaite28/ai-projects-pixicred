@@ -4,11 +4,10 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { AccountService, Account } from '../../services/account.service';
 import { SettingsService } from '../../services/settings.service';
-import { NavbarComponent } from '../../components/navbar/navbar.component';
 
 @Component({
   selector: 'app-settings-account',
-  imports: [CommonModule, CurrencyPipe, DatePipe, NavbarComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe],
   templateUrl: './settings-account.component.html',
 })
 export class SettingsAccountComponent implements OnInit {
