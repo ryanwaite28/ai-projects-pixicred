@@ -27,3 +27,9 @@ variable "tags" {
   description = "Resource tags"
   default     = {}
 }
+
+variable "cors_origins" {
+  type        = list(string)
+  description = "Allowed CORS origins for the API Gateway"
+  default     = ["*"]
+}

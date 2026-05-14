@@ -496,6 +496,7 @@ module "api_gateway" {
   name                = "pixicred-${local.env}-api"
   domain_name         = "api.pixicred.com"
   acm_certificate_arn = data.aws_ssm_parameter.acm_certificate_arn.value
+  cors_origins        = ["https://pixicred.com"]
   tags                = local.tags
 
   integrations = {

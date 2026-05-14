@@ -8,6 +8,15 @@ import type { ServiceAction } from '../src/types/index.js';
 const app = express();
 app.use(express.json());
 
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  if (_req.method === 'OPTIONS') { res.status(204).end(); return; }
+  next();
+});
+
 const sqsClient = createSqsClient();
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
