@@ -279,7 +279,13 @@ jobs:
         run: |
           for dir in dist/lambdas/*/; do
             name=$(basename "$dir")
-            zip -j "dist/${name}.zip" "${dir}index.js" "${dir}index.js.map"
+            outzip="$(pwd)/dist/${name}.zip"
+            if [ "$name" = "service" ]; then
+              # Service lambda carries external native deps (Prisma, bcrypt) in node_modules/
+              (cd "$dir" && zip -r "$outzip" .)
+            else
+              zip -j "$outzip" "${dir}index.js" "${dir}index.js.map"
+            fi
             aws s3 cp "dist/${name}.zip" "s3://pixicred-dev-lambda-packages/${name}/index.zip"
           done
 
@@ -488,7 +494,13 @@ jobs:
         run: |
           for dir in dist/lambdas/*/; do
             name=$(basename "$dir")
-            zip -j "dist/${name}.zip" "${dir}index.js" "${dir}index.js.map"
+            outzip="$(pwd)/dist/${name}.zip"
+            if [ "$name" = "service" ]; then
+              # Service lambda carries external native deps (Prisma, bcrypt) in node_modules/
+              (cd "$dir" && zip -r "$outzip" .)
+            else
+              zip -j "$outzip" "${dir}index.js" "${dir}index.js.map"
+            fi
             aws s3 cp "dist/${name}.zip" "s3://pixicred-prod-lambda-packages/${name}/index.zip"
           done
 

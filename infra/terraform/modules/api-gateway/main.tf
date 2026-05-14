@@ -20,11 +20,40 @@ resource "aws_apigatewayv2_api" "this" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "access_logs" {
+  name              = "/aws/apigateway/${var.name}/access-logs"
+  retention_in_days = 30
+  tags              = var.tags
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.this.id
   name        = "$default"
   auto_deploy = true
   tags        = var.tags
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.access_logs.arn
+    format = jsonencode({
+      requestId        = "$context.requestId"
+      requestTime      = "$context.requestTime"
+      httpMethod       = "$context.httpMethod"
+      routeKey         = "$context.routeKey"
+      status           = "$context.status"
+      responseLatencyMs = "$context.responseLatency"
+      responseLength   = "$context.responseLength"
+      sourceIp         = "$context.identity.sourceIp"
+      userAgent        = "$context.identity.userAgent"
+      integrationError = "$context.integrationErrorMessage"
+      errorMessage     = "$context.error.message"
+    })
+  }
+
+  default_route_settings {
+    detailed_metrics_enabled = true
+    throttling_burst_limit   = 100
+    throttling_rate_limit    = 50
+  }
 }
 
 resource "aws_apigatewayv2_integration" "this" {

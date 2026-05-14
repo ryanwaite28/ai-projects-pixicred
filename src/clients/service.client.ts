@@ -1,5 +1,6 @@
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { PixiCredError } from '../lib/errors.js';
+import { log } from '../lib/logger.js';
 import type { ErrorCode } from '../lib/errors.js';
 import type { ServiceAction } from '../types/index.js';
 
@@ -31,6 +32,7 @@ function createLambdaInvoker(functionArn: string): ServiceClient {
   const lambda = new LambdaClient({});
   return {
     async invoke<T>(action: ServiceAction): Promise<T> {
+      const start = Date.now();
       const res = await lambda.send(
         new InvokeCommand({
           FunctionName: functionArn,
@@ -38,16 +40,25 @@ function createLambdaInvoker(functionArn: string): ServiceClient {
         }),
       );
       if (!res.Payload) {
+        log('error', `service-invoke:${action.action}`, Date.now() - start, { error: 'empty payload from service Lambda' });
         throw new PixiCredError('INTERNAL_ERROR', 'Empty payload from service Lambda');
       }
       const payload = JSON.parse(new TextDecoder().decode(res.Payload)) as unknown;
       if (res.FunctionError) {
-        const err = payload as { code?: ErrorCode; message?: string };
-        throw new PixiCredError(
-          err.code ?? 'INTERNAL_ERROR',
-          err.message ?? 'Service Lambda error',
-        );
+        // Lambda serializes thrown errors as { errorMessage, errorType, stackTrace }
+        // Custom properties like `code` may also be present on PixiCredError instances
+        const raw = payload as { errorMessage?: string; errorType?: string; code?: ErrorCode; message?: string };
+        log('error', `service-invoke:${action.action}`, Date.now() - start, {
+          functionError: res.FunctionError,
+          errorType: raw.errorType,
+          errorMessage: raw.errorMessage,
+          code: raw.code,
+        });
+        const code = raw.code ?? 'INTERNAL_ERROR';
+        const message = raw.message ?? raw.errorMessage ?? 'Service Lambda error';
+        throw new PixiCredError(code, message);
       }
+      log('info', `service-invoke:${action.action}`, Date.now() - start);
       return payload as T;
     },
   };
