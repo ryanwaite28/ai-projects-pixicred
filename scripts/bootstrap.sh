@@ -683,8 +683,9 @@ else
 fi
 
 # ── Secrets Manager secrets ─────────────────────────────────────────────────────
-# DATABASE_URL is loaded from .env.secrets (gitignored) if present so the CI
-# pre-deploy-check passes without waiting for the first migrate run.
+# DATABASE_URL_POOLER and DATABASE_URL_DIRECT are loaded from .env.secrets (gitignored).
+# Pooler (port 6543, PgBouncer) — used by Lambda at runtime.
+# Direct (port 5432)           — used by Prisma migrate in CI only.
 # JWT_SECRET is generated once at bootstrap and never overwritten.
 step "Secrets Manager secrets"
 
@@ -706,34 +707,48 @@ print(f"{scheme}://{user}:{urllib.parse.quote(password, safe='')}@{host_part}")
 PYEOF
 }
 
-# Load DATABASE_URL values from .env.secrets — reads literals, never sourced,
-# so special characters ($, {, }, etc.) in passwords are captured safely.
-DEV_DATABASE_URL=""
-PROD_DATABASE_URL=""
+# Load all four DATABASE_URL values from .env.secrets — reads literals, never sourced.
+DEV_DB_POOLER="" DEV_DB_DIRECT=""
+PROD_DB_POOLER="" PROD_DB_DIRECT=""
 if [ -f .env.secrets ]; then
-  DEV_DATABASE_URL=$(grep -E '^DEV_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2-)
-  PROD_DATABASE_URL=$(grep -E '^PROD_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2-)
-  [ -n "$DEV_DATABASE_URL" ]  && info "Loaded DEV_DATABASE_URL from .env.secrets"
-  [ -n "$PROD_DATABASE_URL" ] && info "Loaded PROD_DATABASE_URL from .env.secrets"
-  [ -z "$DEV_DATABASE_URL" ]  && warn ".env.secrets: DEV_DATABASE_URL is empty"
-  [ -z "$PROD_DATABASE_URL" ] && warn ".env.secrets: PROD_DATABASE_URL is empty"
+  DEV_DB_POOLER=$(grep -E '^DEV_DATABASE_URL_POOLER='  .env.secrets | head -1 | cut -d'=' -f2-)
+  DEV_DB_DIRECT=$(grep -E '^DEV_DATABASE_URL_DIRECT='  .env.secrets | head -1 | cut -d'=' -f2-)
+  PROD_DB_POOLER=$(grep -E '^PROD_DATABASE_URL_POOLER=' .env.secrets | head -1 | cut -d'=' -f2-)
+  PROD_DB_DIRECT=$(grep -E '^PROD_DATABASE_URL_DIRECT=' .env.secrets | head -1 | cut -d'=' -f2-)
+  [ -n "$DEV_DB_POOLER" ]  && info "Loaded DEV_DATABASE_URL_POOLER from .env.secrets"
+  [ -n "$DEV_DB_DIRECT" ]  && info "Loaded DEV_DATABASE_URL_DIRECT from .env.secrets"
+  [ -n "$PROD_DB_POOLER" ] && info "Loaded PROD_DATABASE_URL_POOLER from .env.secrets"
+  [ -n "$PROD_DB_DIRECT" ] && info "Loaded PROD_DATABASE_URL_DIRECT from .env.secrets"
+  [ -z "$DEV_DB_POOLER" ]  && warn ".env.secrets: DEV_DATABASE_URL_POOLER is empty"
+  [ -z "$DEV_DB_DIRECT" ]  && warn ".env.secrets: DEV_DATABASE_URL_DIRECT is empty"
+  [ -z "$PROD_DB_POOLER" ] && warn ".env.secrets: PROD_DATABASE_URL_POOLER is empty"
+  [ -z "$PROD_DB_DIRECT" ] && warn ".env.secrets: PROD_DATABASE_URL_DIRECT is empty"
 else
-  warn ".env.secrets not found — DATABASE_URL will remain placeholder in Secrets Manager"
+  warn ".env.secrets not found — DATABASE_URL_POOLER/DIRECT will remain placeholder in Secrets Manager"
   warn "Create .env.secrets from .env.secrets.example before running bootstrap.sh"
 fi
 
-# URL-encode the password so Node.js/Prisma can parse the URL correctly.
-# The raw URL (with unencoded special chars) is safe for psql but breaks Prisma.
-ENCODED_DEV_URL=$(encode_db_url "$DEV_DATABASE_URL")
-ENCODED_PROD_URL=$(encode_db_url "$PROD_DATABASE_URL")
+# URL-encode passwords so Node.js/Prisma can parse the URLs correctly.
+ENC_DEV_POOLER=$(encode_db_url "$DEV_DB_POOLER")
+ENC_DEV_DIRECT=$(encode_db_url "$DEV_DB_DIRECT")
+ENC_PROD_POOLER=$(encode_db_url "$PROD_DB_POOLER")
+ENC_PROD_DIRECT=$(encode_db_url "$PROD_DB_DIRECT")
 
-if [ -n "$ENCODED_DEV_URL" ]; then
-  info "Encoded dev DATABASE_URL (use this value in GitHub dev environment secret):"
-  info "  $ENCODED_DEV_URL"
+if [ -n "$ENC_DEV_POOLER" ]; then
+  info "Encoded dev DATABASE_URL_POOLER (update GitHub dev env secret DATABASE_URL_POOLER):"
+  info "  $ENC_DEV_POOLER"
 fi
-if [ -n "$ENCODED_PROD_URL" ]; then
-  info "Encoded prod DATABASE_URL (use this value in GitHub prod environment secret):"
-  info "  $ENCODED_PROD_URL"
+if [ -n "$ENC_DEV_DIRECT" ]; then
+  info "Encoded dev DATABASE_URL_DIRECT (update GitHub dev env secret DATABASE_URL_DIRECT):"
+  info "  $ENC_DEV_DIRECT"
+fi
+if [ -n "$ENC_PROD_POOLER" ]; then
+  info "Encoded prod DATABASE_URL_POOLER (update GitHub prod env secret DATABASE_URL_POOLER):"
+  info "  $ENC_PROD_POOLER"
+fi
+if [ -n "$ENC_PROD_DIRECT" ]; then
+  info "Encoded prod DATABASE_URL_DIRECT (update GitHub prod env secret DATABASE_URL_DIRECT):"
+  info "  $ENC_PROD_DIRECT"
 fi
 
 GENERATED_JWT=$(openssl rand -hex 32)
@@ -742,14 +757,16 @@ for ENV in "${ENVS[@]}"; do
   SECRET_NAME="pixicred-${ENV}-secrets"
 
   if [ "$ENV" = "dev" ]; then
-    DB_URL="$ENCODED_DEV_URL"
+    DB_POOLER="$ENC_DEV_POOLER"
+    DB_DIRECT="$ENC_DEV_DIRECT"
   else
-    DB_URL="$ENCODED_PROD_URL"
+    DB_POOLER="$ENC_PROD_POOLER"
+    DB_DIRECT="$ENC_PROD_DIRECT"
   fi
 
   if aws_cmd secretsmanager describe-secret \
       --secret-id "${SECRET_NAME}" 2>/dev/null >/dev/null; then
-    # Secret exists — update JWT_SECRET if missing; set DATABASE_URL if we have a real value
+    # Secret exists — update JWT_SECRET if missing; set DB URLs if we have real values
     EXISTING=$(aws_cmd secretsmanager get-secret-value \
       --secret-id "${SECRET_NAME}" \
       --query 'SecretString' --output text)
@@ -762,9 +779,12 @@ for ENV in "${ENVS[@]}"; do
       UPDATED=$(echo "${UPDATED}" | jq --arg jwt "${GENERATED_JWT}" '. + {JWT_SECRET: $jwt}')
       CHANGED=true
     fi
-
-    if [ -n "$DB_URL" ]; then
-      UPDATED=$(echo "${UPDATED}" | jq --arg url "$DB_URL" '. + {DATABASE_URL: $url}')
+    if [ -n "$DB_POOLER" ]; then
+      UPDATED=$(echo "${UPDATED}" | jq --arg url "$DB_POOLER" '. + {DATABASE_URL_POOLER: $url}')
+      CHANGED=true
+    fi
+    if [ -n "$DB_DIRECT" ]; then
+      UPDATED=$(echo "${UPDATED}" | jq --arg url "$DB_DIRECT" '. + {DATABASE_URL_DIRECT: $url}')
       CHANGED=true
     fi
 
@@ -777,14 +797,15 @@ for ENV in "${ENVS[@]}"; do
       info "Secret ${SECRET_NAME}: already up to date"
     fi
   else
-    # Create new secret — jq handles JSON-escaping of the DATABASE_URL (safe for special chars)
+    # Create new secret — jq --arg handles JSON-escaping safely for special chars
     SECRET_JSON=$(jq -n \
-      --arg db  "${DB_URL:-PLACEHOLDER_set_by_cicd}" \
-      --arg jwt "${GENERATED_JWT}" \
-      '{DATABASE_URL: $db, JWT_SECRET: $jwt}')
+      --arg pooler "${DB_POOLER:-PLACEHOLDER_set_by_cicd}" \
+      --arg direct "${DB_DIRECT:-PLACEHOLDER_set_by_cicd}" \
+      --arg jwt    "${GENERATED_JWT}" \
+      '{DATABASE_URL_POOLER: $pooler, DATABASE_URL_DIRECT: $direct, JWT_SECRET: $jwt}')
     aws_cmd secretsmanager create-secret \
       --name "${SECRET_NAME}" \
-      --description "PixiCred ${ENV} runtime secrets. DATABASE_URL synced from GitHub env secret by CI/CD." \
+      --description "PixiCred ${ENV} runtime secrets. DB URLs synced from GitHub env secrets by CI/CD." \
       --secret-string "$SECRET_JSON" \
       >/dev/null
     info "Created secret: ${SECRET_NAME}"
@@ -863,15 +884,15 @@ echo "     • IAM role: ${ROLE_NAME}"
 echo "     • GitHub env secret: AWS_ROLE_ARN (dev, prod, prod-approval)"
 echo "     • GitHub repo secret: AWS_REGION"
 echo "     • GitHub environments: dev, prod, prod-approval"
-if [ -n "$DEV_DATABASE_URL" ]; then
-  echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL from .env.secrets + JWT_SECRET)"
+if [ -n "$ENC_DEV_POOLER" ] && [ -n "$ENC_DEV_DIRECT" ]; then
+  echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL_POOLER + DATABASE_URL_DIRECT from .env.secrets + JWT_SECRET)"
 else
-  echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL placeholder + JWT_SECRET)"
+  echo "     • Secrets Manager: pixicred-dev-secrets (DATABASE_URL_POOLER/DIRECT placeholder + JWT_SECRET)"
 fi
-if [ -n "$PROD_DATABASE_URL" ]; then
-  echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL from .env.secrets + JWT_SECRET)"
+if [ -n "$ENC_PROD_POOLER" ] && [ -n "$ENC_PROD_DIRECT" ]; then
+  echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL_POOLER + DATABASE_URL_DIRECT from .env.secrets + JWT_SECRET)"
 else
-  echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL placeholder + JWT_SECRET)"
+  echo "     • Secrets Manager: pixicred-prod-secrets (DATABASE_URL_POOLER/DIRECT placeholder + JWT_SECRET)"
 fi
 echo ""
 echo "  ⚠️  Required manual steps:"
@@ -880,11 +901,13 @@ echo "  1. Add required reviewers to the 'prod-approval' GitHub environment:"
 echo "     https://github.com/${GITHUB_REPO}/settings/environments"
 echo "     (prod-approval is the single approval gate; prod itself has no required reviewers)"
 echo ""
-echo "  2. Add DATABASE_URL secrets to GitHub environments:"
-echo "     GitHub repo → Settings → Environments → dev → Add secret:"
-echo "       DATABASE_URL = <Supabase connection pooler URL for dev>"
+echo "  2. Add DATABASE_URL_POOLER and DATABASE_URL_DIRECT secrets to GitHub environments:"
+echo "     GitHub repo → Settings → Environments → dev → Add secrets:"
+echo "       DATABASE_URL_POOLER = <Supabase PgBouncer pooler URL, port 6543>"
+echo "       DATABASE_URL_DIRECT = <Supabase direct URL, port 5432>"
 echo "     Repeat for prod environment."
-echo "     CI/CD syncs this value to Secrets Manager on every deploy/migrate run."
+echo "     migrate.yml syncs both values to Secrets Manager on each migration run."
+echo "     (Encoded URLs were printed above by bootstrap — use those values)"
 echo ""
 echo "  3. (Optional) Request SES production access to send to unverified recipients:"
 echo "     AWS Console → SES → Account dashboard → Request production access"

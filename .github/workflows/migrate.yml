@@ -40,24 +40,27 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync DATABASE_URL to Secrets Manager
+      - name: Sync DB URLs to Secrets Manager
         run: |
           ENV="${{ github.event.inputs.environment || 'dev' }}"
           CURRENT=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-${ENV}-secrets" \
             --query "SecretString" --output text)
-          UPDATED=$(echo "$CURRENT" | jq --arg url "$DATABASE_URL" '. + {DATABASE_URL: $url}')
+          UPDATED=$(echo "$CURRENT" \
+            | jq --arg pooler "$DATABASE_URL_POOLER" --arg direct "$DATABASE_URL_DIRECT" \
+                 '. + {DATABASE_URL_POOLER: $pooler, DATABASE_URL_DIRECT: $direct}')
           aws secretsmanager put-secret-value \
             --secret-id "pixicred-${ENV}-secrets" \
             --secret-string "$UPDATED"
-          echo "✅ DATABASE_URL synced to pixicred-${ENV}-secrets"
+          echo "✅ DATABASE_URL_POOLER and DATABASE_URL_DIRECT synced to pixicred-${ENV}-secrets"
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Sync migrations to S3 audit trail
         run: |
