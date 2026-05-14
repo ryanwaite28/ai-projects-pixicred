@@ -68,12 +68,12 @@ closeAccount(accountId: string): Observable<void>
 ---
 
 ## Done When
-- [x] Notification settings page loads current preferences on init
-- [x] Each toggle immediately patches the preference on change; reverts on error
-- [x] No toggle calls the API when the value hasn't changed (no spurious PATCH on load)
-- [x] Account settings page displays all read-only fields from the account API response
-- [x] Close account modal opens on button click; closes without action on cancel
-- [x] Close account: on confirm, calls DELETE, logs out, navigates to `/` with farewell notice
+- [x] Notification settings page loads current preferences on init; all three toggles reflect API state (FR-FE-11)
+- [x] Each toggle immediately patches the preference on change via optimistic UI; reverts on error (FR-FE-11)
+- [x] No toggle calls the API when the value hasn't changed (no spurious PATCH on load) (FR-FE-11)
+- [x] Account settings page displays all read-only fields: Account ID, email, credit limit, member since, account status (FR-FE-12)
+- [x] Close account modal opens on button click; closes without action on cancel (FR-FE-12)
+- [x] Close account: on confirm, calls DELETE, logs out, navigates to `/` with farewell notice (FR-FE-12)
 - [x] All pages redirect to `/login` when JWT is absent or expired
 - [x] Signals used for component state throughout
 - [x] Spec status updated to ✅ Implemented

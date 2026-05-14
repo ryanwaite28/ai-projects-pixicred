@@ -89,13 +89,13 @@ All methods use Angular `HttpClient`. Auth interceptor injects `Authorization: B
 ---
 
 ## Done When
-- [x] Dashboard loads account summary from API on init; displays all required fields
-- [x] Dashboard shows last 5 transactions
-- [x] Transactions page loads first page; "Load More" appends next page by cursor; hides when exhausted
-- [x] Payments form: amount field and FULL toggle are mutually exclusive; correct payload sent for each mode
-- [x] Payment confirmation shows resolved amount returned from API
-- [x] Statements list sorted by period descending; clicking a statement loads and shows full detail with transactions
-- [x] "Generate Statement" creates a new statement and prepends it to the list
+- [x] Dashboard loads account summary on init; displays credit limit, current balance, available credit, payment due date, and satisfaction status (FR-FE-07)
+- [x] Dashboard shows last 5 transactions (FR-FE-07)
+- [x] Transactions page loads first page; "Load More" appends next page by cursor; hides when response returns fewer than 20 items (FR-FE-08)
+- [x] Payments form: amount field and "Pay Full Balance" toggle are mutually exclusive; sends `amount = 'FULL'` when toggle is on (FR-FE-09)
+- [x] Payment confirmation shows resolved amount returned from API (FR-FE-09)
+- [x] Statements list sorted by period descending; clicking a statement loads and shows full detail with transactions (FR-FE-10)
+- [x] "Generate Statement" creates a new statement and prepends it to the list (FR-FE-10)
 - [x] All pages redirect to `/login` when JWT is absent or expired (handled by auth guard + interceptor)
 - [x] Signals used for component state — no raw Observable subscriptions for UI state
 - [x] Spec status updated to ✅ Implemented

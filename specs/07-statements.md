@@ -1,5 +1,5 @@
 # Spec: Statements
-**FR references**: FR-STMT-01, FR-STMT-02, FR-STMT-03, FR-STMT-04, FR-STMT-05, FR-STMT-06, FR-STMT-07, FR-STMT-08, FR-EMAIL-04
+**FR references**: FR-STMT-01, FR-STMT-02, FR-STMT-03, FR-STMT-04, FR-STMT-05, FR-STMT-06, FR-STMT-07, FR-STMT-08, FR-EMAIL-04, NFR-02
 **Status**: ✅ Implemented
 
 ---
@@ -236,13 +236,17 @@ test('full scheduled flow: EventBridge enqueues weekly SQS message, handler runs
 ---
 
 ## Done When
-- [x] `generateStatement` on-demand period uses prior statement's `periodEnd` or `account.createdAt`
-- [x] `openingBalance = closingBalance + totalPayments − totalCharges`
-- [x] `dueDate` is exactly 21 days after `periodEnd`
-- [x] Idempotency: re-running with same period returns existing statement, no new DB row, no second SNS event
-- [x] `generateAllStatements` includes `ACTIVE` and `SUSPENDED` accounts; skips `CLOSED`
+- [x] `generateStatement` on-demand period uses prior statement's `periodEnd` or `account.createdAt` (FR-STMT-04)
+- [x] Weekly: `periodEnd` = start of current Monday UTC, `periodStart` = 7 days prior; monthly: `periodEnd` = first of this month, `periodStart` = first of prior month — verifying FR-STMT-01
+- [x] Statement-gen SQS handler shape-validates `period`; throws on error to trigger SQS retry (FR-STMT-02)
+- [x] `openingBalance = closingBalance + totalPayments − totalCharges`; all statement fields match FR-STMT-03
+- [x] `dueDate` is exactly 21 days after `periodEnd` (FR-STMT-03)
+- [x] `STATEMENT_GENERATED` event published to SNS after each new statement is created (FR-STMT-07)
+- [x] Idempotency: re-running with same period returns existing statement, no new DB row, no second SNS event (FR-STMT-08, NFR-02)
+- [x] `generateAllStatements` includes `ACTIVE` and `SUSPENDED` accounts; skips `CLOSED` (FR-STMT-01)
+- [x] `getStatements` returns list sorted `periodEnd DESC` (FR-STMT-05)
+- [x] `getStatement` populates `transactions[]`; `getStatements` does not (FR-STMT-06)
 - [x] `getTransactionsByAccountAndPeriod` upper bound is exclusive
-- [x] `getStatement` populates `transactions[]`; `getStatements` does not
 - [x] Statement email includes all fields required by FR-EMAIL-04
 - [x] All service unit tests pass against Testcontainers Postgres
 - [x] All handler integration tests pass; full scheduled flow test passes against MiniStack

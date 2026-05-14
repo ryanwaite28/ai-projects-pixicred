@@ -1,5 +1,5 @@
 # Spec: Transactions
-**FR references**: FR-TXN-01, FR-TXN-02, FR-TXN-03, FR-TXN-04, FR-TXN-05, FR-TXN-06, FR-TXN-07, FR-EMAIL-03
+**FR references**: FR-TXN-01, FR-TXN-02, FR-TXN-03, FR-TXN-04, FR-TXN-05, FR-TXN-06, FR-TXN-07, FR-EMAIL-03, NFR-02
 **Status**: ✅ Implemented
 
 ---
@@ -174,11 +174,14 @@ test('GET /accounts/:accountId/transactions returns 404 ACCOUNT_NOT_FOUND for un
 ---
 
 ## Done When
-- [x] `postCharge` idempotency check runs first — before all domain validations
-- [x] `postCharge` atomically inserts `Transaction` and updates balance in one DB transaction
-- [x] `postCharge` publishes `TRANSACTION_POSTED` event after successful commit
-- [x] Idempotent replay returns original transaction, produces zero DB writes, produces zero SNS publishes
-- [x] `getTransactions` defaults to limit 20, clamps at 100, supports cursor pagination
+- [x] `postCharge` accepts `accountId`, `merchantName`, `amount`, `idempotencyKey` — all required fields verified (FR-TXN-01)
+- [x] `postCharge` validates account is `ACTIVE`; throws `ACCOUNT_NOT_ACTIVE` for `SUSPENDED`/`CLOSED` (FR-TXN-02)
+- [x] `postCharge` throws `INSUFFICIENT_CREDIT` when `amount > availableCredit` — verified by test (FR-TXN-04)
+- [x] `postCharge` idempotency check runs first — before all domain validations (FR-TXN-05, NFR-02)
+- [x] `postCharge` atomically inserts `Transaction` and updates balance in one DB transaction (FR-TXN-03)
+- [x] `postCharge` publishes `TRANSACTION_POSTED` event after successful commit (FR-TXN-06)
+- [x] Idempotent replay returns original transaction, produces zero DB writes, produces zero SNS publishes (FR-TXN-05, NFR-02)
+- [x] `getTransactions` defaults to limit 20, clamps at 100, supports cursor pagination sorted `createdAt DESC` (FR-TXN-07)
 - [x] Transaction email template includes all fields required by FR-EMAIL-03
 - [x] All service unit tests pass against Testcontainers Postgres
 - [x] All handler integration tests pass

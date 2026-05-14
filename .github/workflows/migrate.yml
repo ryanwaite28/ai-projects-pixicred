@@ -1,11 +1,6 @@
 name: Migrate
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'prisma/migrations/**'
-      - 'prisma/schema.prisma'
   workflow_dispatch:
     inputs:
       environment:

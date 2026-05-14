@@ -131,14 +131,14 @@ test('DELETE /accounts/:accountId always passes reason USER_REQUESTED to service
 ---
 
 ## Done When
-- [x] `getAccount` returns all FR-ACC-02 fields (`accountId`, `applicationId`, `holderEmail`, `creditLimit`, `currentBalance`, `availableCredit`, `status`, `paymentDueDate`, `closedAt`, `closeReason`, `createdAt`) — confirmed by service test
-- [x] `getAccount` derives `availableCredit` correctly and never reads it from DB
-- [x] `closeAccount` handles all three status transitions: `ACTIVE → CLOSED`, `SUSPENDED → CLOSED`, `CLOSED → CLOSED` (error)
-- [x] `closeAccount` publishes correct SNS event type for each `reason`
+- [x] `getAccount` returns all FR-ACC-02 fields (`accountId`, `applicationId`, `holderEmail`, `creditLimit`, `currentBalance`, `availableCredit`, `status`, `paymentDueDate`, `closedAt`, `closeReason`, `createdAt`) — confirmed by service test (FR-ACC-02, FR-ACC-04)
+- [x] `getAccount` derives `availableCredit` correctly and never reads it from DB (FR-ACC-03)
+- [x] `closeAccount` handles all three status transitions: `ACTIVE → CLOSED`, `SUSPENDED → CLOSED`, `CLOSED → CLOSED` (error) — verifying FR-ACC-05
+- [x] `closeAccount` publishes `ACCOUNT_USER_CLOSED` or `ACCOUNT_AUTO_CLOSED` SNS event for each `reason` — verifying FR-ACC-09
 - [x] `closeAccount` does not call any email function directly
 - [x] User-close email template includes all fields required by FR-EMAIL-09
 - [x] Handler passes `reason: 'USER_REQUESTED'` as a fixed literal — no conditional logic in handler
-- [x] Reapplication test confirms `getActiveApplicationOrAccountByEmail` returns null after close
+- [x] Reapplication test confirms `getActiveApplicationOrAccountByEmail` returns null after close (FR-ACC-10)
 - [x] All service unit tests pass against Testcontainers Postgres
 - [x] All handler integration tests pass
 - [x] Spec status updated to ✅ Implemented

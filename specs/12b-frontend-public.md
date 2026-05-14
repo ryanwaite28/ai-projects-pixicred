@@ -79,12 +79,12 @@ No auth header injected (public routes bypassed by auth interceptor).
 ---
 
 ## Done When
-- [x] Welcome page renders with Apply and Login CTAs navigating to correct routes
-- [x] Apply form validates all fields; `mockSsn` enforces exactly 5 digits
-- [x] Apply form calls `POST /applications`; on success navigates to confirmation with `applicationId` in state
-- [x] Confirmation page displays `applicationId` prominently; redirects to `/apply` if no state
-- [x] Status page calls `GET /applications/:id`; renders all three status states correctly
-- [x] Status page shows APPROVED prompt with link to `/setup`
+- [x] Welcome page renders with Apply and Login CTAs navigating to correct routes (FR-FE-01)
+- [x] Apply form validates all fields; `mockSsn` enforces exactly 5 digits; calls `POST /applications` on submit (FR-FE-02)
+- [x] Apply form on success navigates to confirmation with `applicationId` in router state (FR-FE-02)
+- [x] Confirmation page displays `applicationId` prominently as confirmation code; redirects to `/apply` if no router state (FR-FE-03)
+- [x] Status page calls `GET /applications/:id`; renders all three status states (PENDING, APPROVED, DECLINED) correctly (FR-FE-04)
+- [x] Status page shows APPROVED prompt with link to `/setup` (FR-FE-04)
 - [x] All pages use PixiCred shared utility classes (.pxc-card, .pxc-btn-primary, .pxc-input) — no inline or ad-hoc styling
 - [x] New control flow syntax used throughout (`@if`, `@for`, `@switch`)
 - [x] Spec status updated to ✅ Implemented

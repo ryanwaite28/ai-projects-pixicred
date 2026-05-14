@@ -104,16 +104,17 @@ export const authGuard: CanActivateFn = () => {
 
 ## Done When
 - [x] `ng serve` starts on port 4200 with no compilation errors
+- [x] `proxy.conf.json` proxies `/api/**` to `http://localhost:3000`; `ng serve` resolves API calls locally without CORS errors — verifying FR-FE-17
 - [x] All routes declared in `app.routes.ts` resolve to valid component files (stubs acceptable for pages not yet implemented)
-- [x] Auth guard redirects unauthenticated users to `/login` on all protected routes
-- [x] Auth interceptor injects Bearer token on protected requests; skips public routes
-- [x] Auth interceptor clears JWT and redirects to `/login` on 401/403
-- [x] Login form validates, calls API, stores JWT, and navigates to `/dashboard` on success
-- [x] Setup form validates (including password-match check), calls API, and navigates to `/login` on success
-- [x] JWT stored in `localStorage` under key `pixicred_jwt`; never in cookies
+- [x] Auth guard redirects unauthenticated users to `/login` on all protected routes (FR-FE-13)
+- [x] Auth interceptor injects Bearer token on protected requests; skips public routes (FR-FE-14)
+- [x] Auth interceptor clears JWT and redirects to `/login` on 401/403 (FR-FE-14)
+- [x] Login form validates, calls API, stores JWT, and navigates to `/dashboard` on success (FR-FE-06)
+- [x] Setup form validates (including password-match check), calls API, and navigates to `/login` on success (FR-FE-05)
+- [x] JWT stored in `localStorage` under key `pixicred_jwt`; never in cookies (FR-FE-14)
 - [x] All components are standalone — no NgModule in the codebase
 - [x] New control flow syntax (`@if`, `@for`) used — no `*ngIf` / `*ngFor`
-- [x] Tailwind CSS installed and configured with PixiCred custom theme; `ng build` compiles styles with no errors or warnings
-- [x] Shared utility classes (`.pxc-card`, `.pxc-btn-primary`, `.pxc-input`) defined in `src/tailwind.css`; login and setup pages use them
+- [x] Tailwind CSS installed and configured with PixiCred custom theme; `ng build` compiles styles with no errors or warnings (FR-FE-15)
+- [x] Shared utility classes (`.pxc-card`, `.pxc-btn-primary`, `.pxc-input`) defined in `src/tailwind.css`; login and setup pages use them (FR-FE-15)
 - [x] Spec status updated to ✅ Implemented
 - [x] IMPLEMENTATION_PLAN.md Phase 10a row marked complete

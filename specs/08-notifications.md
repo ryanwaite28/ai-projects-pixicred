@@ -222,10 +222,14 @@ test('PATCH /accounts/:accountId/notifications returns 404 ACCOUNT_NOT_FOUND for
 ---
 
 ## Done When
-- [x] All nine `send*Email` functions catch SES errors and return void — verified by test
-- [x] `sendTransactionEmail` suppressed when `transactionsEnabled = false`
-- [x] `sendStatementEmail` suppressed when `statementsEnabled = false`
-- [x] `sendPaymentDueReminderEmail` suppressed when `paymentRemindersEnabled = false`
+- [x] All nine `send*Email` functions catch SES errors and return void — verified by test (FR-NOTIF-06)
+- [x] All nine `send*Email` functions route SES calls exclusively through `clients.sesClient.sendEmail` — no direct SES SDK calls in service layer — verifying FR-EMAIL-05
+- [x] `SES_FROM_EMAIL` env var is the sole place the sender address is configured in every template function; no hardcoded addresses anywhere — verifying FR-EMAIL-06
+- [x] `getNotificationPreferences` returns preferences for valid accountId; returns `ACCOUNT_NOT_FOUND` for unknown accountId (FR-NOTIF-03)
+- [x] `updateNotificationPreferences` applies partial updates; returns `VALIDATION_ERROR` when no fields provided (FR-NOTIF-02)
+- [x] `sendTransactionEmail` suppressed when `transactionsEnabled = false` (FR-NOTIF-04)
+- [x] `sendStatementEmail` suppressed when `statementsEnabled = false` (FR-NOTIF-05)
+- [x] `sendPaymentDueReminderEmail` suppressed when `paymentRemindersEnabled = false` — extends the FR-NOTIF-04/FR-NOTIF-05 preference-gating pattern to the reminder email type
 - [x] `sendAutoCloseEmail`, `sendUserCloseEmail`, `sendDeclineEmail`, `sendApprovalEmail` are not preference-gated
 - [x] Notification handler correctly parses SNS envelope from SQS record body
 - [x] Unknown `eventType` acknowledged without throwing

@@ -1,5 +1,5 @@
 # Spec: Payments
-**FR references**: FR-PAY-01, FR-PAY-02, FR-PAY-03, FR-PAY-04, FR-PAY-05, FR-PAY-06, FR-PAY-07, FR-DUE-03, FR-DUE-04
+**FR references**: FR-PAY-01, FR-PAY-02, FR-PAY-03, FR-PAY-04, FR-PAY-05, FR-PAY-06, FR-PAY-07, FR-DUE-03, FR-DUE-04, NFR-02
 **Status**: ✅ Implemented
 
 ---
@@ -149,15 +149,17 @@ test('POST /accounts/:accountId/payments returns 201 with original transaction o
 ---
 
 ## Done When
-- [x] `postPayment` idempotency check runs first — before all domain validations
-- [x] `"FULL"` resolves to `account.currentBalance` at time of processing
-- [x] Idempotent replay of `"FULL"` returns the originally-resolved amount, not the current balance
-- [x] Payments accepted on `ACTIVE` and `SUSPENDED` accounts; rejected on `CLOSED`
-- [x] `PaymentDueSchedule.satisfied` set to `true` and `satisfiedAt` stamped when `newBalance === 0`
-- [x] `satisfied` not reset when subsequent charges raise the balance above zero again
-- [x] `postPayment` atomically inserts `Transaction`, updates balance, and (conditionally) marks satisfied in one DB transaction
+- [x] `postPayment` accepts a positive number or the exact string `"FULL"` as `amount` (FR-PAY-01)
+- [x] `postPayment` validates account is not `CLOSED`; accepts `ACTIVE` and `SUSPENDED` (FR-PAY-02)
+- [x] `postPayment` idempotency check runs first — before all domain validations (FR-PAY-04, NFR-02)
+- [x] `"FULL"` resolves to `account.currentBalance` at time of processing (FR-PAY-07)
+- [x] Idempotent replay of `"FULL"` returns the originally-resolved amount, not the current balance (FR-PAY-07, NFR-02)
+- [x] Payments accepted on `ACTIVE` and `SUSPENDED` accounts; rejected on `CLOSED` (FR-PAY-02)
+- [x] `PaymentDueSchedule.satisfied` set to `true` and `satisfiedAt` stamped when `newBalance === 0` (FR-PAY-03, FR-DUE-03)
+- [x] `satisfied` not reset when subsequent charges raise the balance above zero again (FR-DUE-04)
+- [x] `postPayment` atomically inserts `Transaction`, updates balance, and (conditionally) marks satisfied in one DB transaction (FR-PAY-03)
 - [x] `computeMinimumPayment` formula matches FR-PAY-05 exactly: `max(25, balance * 0.02)`
-- [x] `postPayment` publishes `TRANSACTION_POSTED` after successful commit
+- [x] `postPayment` publishes `TRANSACTION_POSTED` after successful commit (FR-PAY-06)
 - [x] All service unit tests pass against Testcontainers Postgres
 - [x] All handler integration tests pass
 - [x] Spec status updated to ✅ Implemented

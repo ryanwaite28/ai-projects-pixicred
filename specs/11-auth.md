@@ -176,16 +176,19 @@ test('loginPortalAccount JWT payload contains exp approximately 24h from now')
 ---
 
 ## Done When
-- [x] `prisma migrate dev` produces `add_portal_accounts` migration and exits 0
+- [x] `prisma migrate dev` produces `add_portal_accounts` migration; table stores `accountId`, `email`, `passwordHash` — verifying FR-AUTH-01, FR-AUTH-06
 - [x] `auth.queries.ts` compiles under strict mode
 - [x] All `tests/db/auth.queries.test.ts` pass against Testcontainers Postgres
 - [x] All `tests/service/auth.service.test.ts` pass
-- [x] `registerPortalAccount` never stores plaintext password — verified by test
+- [x] `registerPortalAccount` creates portal account linked to an approved `accountId` and returns `{ accountId }` (FR-AUTH-01)
+- [x] `registerPortalAccount` never stores plaintext password — bcrypt cost 12 confirmed by test (FR-AUTH-06)
+- [x] `loginPortalAccount` returns signed JWT containing `accountId` and `email` with 24h expiry (FR-AUTH-02, FR-AUTH-03)
 - [x] `loginPortalAccount` returns `INVALID_CREDENTIALS` for both missing-email and wrong-password cases — verified by separate tests (timing-safe; both paths return the same error code)
+- [x] `POST /auth/register` and `POST /auth/login` require no JWT — public routes (FR-AUTH-05)
 - [x] `auth.handler.ts` is a thin dispatch — no business logic; shape validation only
 - [x] `POST /auth/register` and `POST /auth/login` work end-to-end via `local/api-server.ts`
 - [x] `src/lib/jwt.ts` — `validateBearerToken` correctly throws `UNAUTHORIZED`/`FORBIDDEN`; all 6 test cases pass
 - [x] All account-scoped Lambda handlers call `validateBearerToken` before invoking service layer (FR-AUTH-04)
-- [x] `JWT_SECRET` retrieved via `await getConfig()` in `loginPortalAccount` and account-scoped Lambda handlers — never read from `process.env` directly
+- [x] `JWT_SECRET` retrieved via `await getConfig()` from Secrets Manager — never read from `process.env` directly (FR-AUTH-08)
 - [x] Spec status updated to ✅ Implemented
 - [x] IMPLEMENTATION_PLAN.md Phase 9 row marked complete

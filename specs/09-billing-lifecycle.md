@@ -1,5 +1,5 @@
 # Spec: Billing Lifecycle Jobs
-**FR references**: FR-BILL-01, FR-BILL-02, FR-BILL-03, FR-BILL-04, FR-BILL-05, FR-BILL-06, FR-BILL-07, FR-BILL-08, FR-EMAIL-07, FR-EMAIL-08
+**FR references**: FR-BILL-01, FR-BILL-02, FR-BILL-03, FR-BILL-04, FR-BILL-05, FR-BILL-06, FR-BILL-07, FR-BILL-08, FR-EMAIL-07, FR-EMAIL-08, NFR-02
 **Status**: ✅ Implemented
 
 ---
@@ -202,17 +202,21 @@ test('POST /admin/billing-lifecycle returns 202 immediately — does not wait fo
 ---
 
 ## Done When
-- [x] Auto-close sweep runs before reminder sweep in the same function execution — verified by ordering test
-- [x] Accounts closed in auto-close sweep are excluded from reminder sweep in the same run
+- [x] EventBridge rule triggers billing-lifecycle SQS queue at 08:00 UTC daily (FR-BILL-01)
+- [x] `lookaheadDays` validated as integer ≥ 1; `VALIDATION_ERROR` thrown otherwise (FR-BILL-02)
+- [x] Auto-close sweep targets accounts where `satisfied = false` AND `paymentDueDate < today − 14 days` (FR-BILL-04)
+- [x] Reminder sweep targets accounts where `satisfied = false` AND `paymentDueDate <= today + lookaheadDays` AND not yet reminded today (FR-BILL-03)
+- [x] Auto-close sweep runs before reminder sweep in the same function execution — verified by ordering test (FR-BILL-05)
+- [x] Accounts closed in auto-close sweep are excluded from reminder sweep in the same run (FR-BILL-05)
 - [x] `reminderSentDate` stamped before SNS publish — not after
-- [x] Auto-close idempotency: already-`CLOSED` accounts excluded by query status filter (FR-BILL-08)
-- [x] Reminder idempotency: `reminder_sent_date = today` excludes re-reminding on same day (FR-BILL-07)
+- [x] Auto-close idempotency: already-`CLOSED` accounts excluded by query status filter (FR-BILL-08, NFR-02)
+- [x] Reminder idempotency: `reminder_sent_date = today` excludes re-reminding on same day (FR-BILL-07, NFR-02)
+- [x] `POST /admin/billing-lifecycle` enqueues to SQS and returns `202` immediately — verifying FR-BILL-06
+- [x] Admin handler enqueues to SQS — does not invoke service Lambda directly
 - [x] `runBillingLifecycle` calls `closeAccount` from `account.service.ts` directly — no duplicate close logic
 - [x] `computeMinimumPayment` imported from `payment.service.ts` in reminder template — not re-implemented
 - [x] Payment-due reminder email includes all fields from FR-EMAIL-07 including auto-close warning
 - [x] Auto-close email includes all fields from FR-EMAIL-08 including outstanding balance
-- [x] Admin handler returns `202` immediately without waiting for the job to complete
-- [x] Admin handler enqueues to SQS — does not invoke service Lambda directly
 - [x] All service unit tests pass against Testcontainers Postgres
 - [x] All handler and email template tests pass
 - [x] Both scheduled and on-demand flow integration tests pass against MiniStack
