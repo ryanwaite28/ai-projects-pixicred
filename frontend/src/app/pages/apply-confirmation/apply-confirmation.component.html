@@ -1,0 +1,44 @@
+<div class="pxc-auth-page">
+
+  <div class="mb-8 text-center">
+    <span class="pxc-logo text-2xl">Pixi<span>Cred</span></span>
+  </div>
+
+  <div class="pxc-auth-card text-center">
+
+    <!-- Success icon -->
+    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+         style="background-color: var(--color-pxc-success-bg)">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+           style="color: var(--color-pxc-success)">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-2" style="color: var(--color-pxc-navy)">Application submitted!</h1>
+    <p class="text-sm mb-8" style="color: var(--color-pxc-muted)">
+      We're reviewing your application. You'll hear from us shortly.
+    </p>
+
+    <!-- Confirmation code block -->
+    <div class="rounded-xl p-5 mb-8" style="background-color: var(--color-pxc-blue-light)">
+      <p class="text-xs font-semibold uppercase tracking-widest mb-2"
+         style="color: var(--color-pxc-blue)">Your Confirmation Code</p>
+      <p class="text-lg font-mono font-bold break-all" style="color: var(--color-pxc-navy)">
+        {{ applicationId() }}
+      </p>
+    </div>
+
+    <div class="pxc-alert warning text-left mb-8">
+      <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      </svg>
+      <span>Save this code — you'll need it to check your application status.</span>
+    </div>
+
+    <a routerLink="/apply/status" class="pxc-btn-primary w-full mb-3">Check application status</a>
+    <a routerLink="/" class="pxc-btn-ghost w-full text-sm">Back to home</a>
+
+  </div>
+</div>

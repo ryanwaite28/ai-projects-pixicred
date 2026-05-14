@@ -1,0 +1,32 @@
+<nav class="pxc-topbar">
+  <!-- Logo -->
+  <a routerLink="/dashboard" class="pxc-logo shrink-0">Pixi<span>Cred</span></a>
+
+  <!-- Nav links -->
+  <div class="hidden md:flex items-center gap-1">
+    <a routerLink="/dashboard"    routerLinkActive="nav-active" class="nav-link">Dashboard</a>
+    <a routerLink="/transactions" routerLinkActive="nav-active" class="nav-link">Transactions</a>
+    <a routerLink="/payments"     routerLinkActive="nav-active" class="nav-link">Payments</a>
+    <a routerLink="/statements"   routerLinkActive="nav-active" class="nav-link">Statements</a>
+  </div>
+
+  <!-- Right side -->
+  <div class="flex items-center gap-3">
+    <div class="hidden sm:flex items-center gap-2">
+      <a routerLink="/settings/account" routerLinkActive="nav-active" class="nav-link text-xs">Settings</a>
+    </div>
+    <button (click)="logout()" class="pxc-btn-ghost text-xs" style="color: #94a3b8">
+      Sign out
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile nav -->
+<div class="flex md:hidden border-b overflow-x-auto"
+     style="background-color: var(--color-pxc-navy-light); border-color: rgba(255,255,255,0.08)">
+  <a routerLink="/dashboard"    routerLinkActive="nav-active" class="nav-link-mobile">Dashboard</a>
+  <a routerLink="/transactions" routerLinkActive="nav-active" class="nav-link-mobile">Transactions</a>
+  <a routerLink="/payments"     routerLinkActive="nav-active" class="nav-link-mobile">Payments</a>
+  <a routerLink="/statements"   routerLinkActive="nav-active" class="nav-link-mobile">Statements</a>
+  <a routerLink="/settings/account" routerLinkActive="nav-active" class="nav-link-mobile">Settings</a>
+</div>

@@ -1,0 +1,104 @@
+<div class="pxc-auth-page">
+
+  <!-- Logo -->
+  <div class="mb-8 text-center">
+    <span class="pxc-logo text-2xl">Pixi<span>Cred</span></span>
+    <p class="text-slate-400 text-sm mt-1">Your credit, your control.</p>
+  </div>
+
+  <div class="pxc-auth-card">
+
+    <h1 class="text-2xl font-bold text-pxc-navy mb-1">Sign in</h1>
+    <p class="text-sm text-pxc-muted mb-6">Access your PixiCred account</p>
+
+    <!-- Success banner (from /setup redirect) -->
+    @if (successMessage()) {
+      <div class="pxc-alert success mb-5">
+        <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 13l4 4L19 7" />
+        </svg>
+        <span>{{ successMessage() }}</span>
+      </div>
+    }
+
+    <!-- Error banner -->
+    @if (errorMessage()) {
+      <div class="pxc-alert error mb-5">
+        <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-5">
+
+      <!-- Email -->
+      <div>
+        <label for="email" class="pxc-label">Email address</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          [class.error]="form.controls.email.invalid && form.controls.email.touched"
+          class="pxc-input"
+        />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <p class="pxc-field-error">
+            @if (form.controls.email.hasError('required')) { Email is required. }
+            @else { Enter a valid email address. }
+          </p>
+        }
+      </div>
+
+      <!-- Password -->
+      <div>
+        <label for="password" class="pxc-label">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          placeholder="••••••••"
+          [class.error]="form.controls.password.invalid && form.controls.password.touched"
+          class="pxc-input"
+        />
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <p class="pxc-field-error">Password is required.</p>
+        }
+      </div>
+
+      <!-- Submit -->
+      <button
+        type="submit"
+        class="pxc-btn-primary w-full mt-2"
+        [disabled]="loading()"
+      >
+        @if (loading()) {
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Signing in…
+        } @else {
+          Sign in
+        }
+      </button>
+
+    </form>
+
+    <div class="pxc-divider"></div>
+
+    <p class="text-sm text-center text-pxc-muted">
+      Don't have an account?
+      <a routerLink="/setup" class="pxc-link ml-1">Apply now</a>
+    </p>
+
+  </div>
+
+</div>

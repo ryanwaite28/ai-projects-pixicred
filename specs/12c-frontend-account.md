@@ -1,6 +1,6 @@
 # Spec: Frontend — Account Pages (Phase 10c)
 **FR references**: FR-FE-07, FR-FE-08, FR-FE-09, FR-FE-10
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 **Prerequisite**: Phase 10a (auth guard and auth interceptor in place)
 
 ---
@@ -89,14 +89,14 @@ All methods use Angular `HttpClient`. Auth interceptor injects `Authorization: B
 ---
 
 ## Done When
-- [ ] Dashboard loads account summary from API on init; displays all required fields
-- [ ] Dashboard shows last 5 transactions
-- [ ] Transactions page loads first page; "Load More" appends next page by cursor; hides when exhausted
-- [ ] Payments form: amount field and FULL toggle are mutually exclusive; correct payload sent for each mode
-- [ ] Payment confirmation shows resolved amount returned from API
-- [ ] Statements list sorted by period descending; clicking a statement loads and shows full detail with transactions
-- [ ] "Generate Statement" creates a new statement and prepends it to the list
-- [ ] All pages redirect to `/login` when JWT is absent or expired (handled by auth guard + interceptor)
-- [ ] Signals used for component state — no raw Observable subscriptions for UI state
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 10c row marked complete
+- [x] Dashboard loads account summary from API on init; displays all required fields
+- [x] Dashboard shows last 5 transactions
+- [x] Transactions page loads first page; "Load More" appends next page by cursor; hides when exhausted
+- [x] Payments form: amount field and FULL toggle are mutually exclusive; correct payload sent for each mode
+- [x] Payment confirmation shows resolved amount returned from API
+- [x] Statements list sorted by period descending; clicking a statement loads and shows full detail with transactions
+- [x] "Generate Statement" creates a new statement and prepends it to the list
+- [x] All pages redirect to `/login` when JWT is absent or expired (handled by auth guard + interceptor)
+- [x] Signals used for component state — no raw Observable subscriptions for UI state
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 10c row marked complete

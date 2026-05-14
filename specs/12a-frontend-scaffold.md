@@ -1,6 +1,6 @@
 # Spec: Frontend — Scaffold & Auth Shell (Phase 10a)
 **FR references**: FR-FE-05, FR-FE-06, FR-FE-13, FR-FE-14, FR-FE-15, FR-FE-17, FR-AUTH-02, FR-AUTH-03
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 **Prerequisite**: Phase 9 (`POST /auth/register` and `POST /auth/login` live)
 
 ---
@@ -20,6 +20,8 @@ FR-FE-13 requires protected routes; FR-FE-14 requires the auth interceptor and g
 ## New / Modified Files
 
 - `frontend/` — new Angular workspace (`ng new pixicred-frontend --standalone --routing --style=scss`)
+- `frontend/tailwind.config.js` — Tailwind config with PixiCred custom theme (colors, fonts, spacing)
+- `frontend/src/styles.scss` — global stylesheet: Tailwind directives + PixiCred utility classes (`.pxc-card`, `.pxc-btn-primary`, `.pxc-btn-secondary`, `.pxc-input`, `.pxc-badge-*`, `.pxc-balance-display`)
 - `frontend/src/environments/environment.ts` — `{ apiUrl: 'http://localhost:3000' }`
 - `frontend/src/environments/environment.prod.ts` — `{ apiUrl: 'https://api.pixicred.com' }`
 - `frontend/proxy.conf.json` — proxies `/api/**` → `http://localhost:3000`
@@ -27,8 +29,8 @@ FR-FE-13 requires protected routes; FR-FE-14 requires the auth interceptor and g
 - `frontend/src/app/services/auth.service.ts` — JWT store/retrieve/clear; `register()`, `login()`, `logout()`, `isAuthenticated()`, `getAccountId()`
 - `frontend/src/app/interceptors/auth.interceptor.ts` — injects `Authorization: Bearer <jwt>` on non-public requests; clears JWT and redirects to `/login` on 401/403
 - `frontend/src/app/guards/auth.guard.ts` — redirects to `/login` when JWT absent or expired; checks expiry client-side via `exp` claim
-- `frontend/src/app/pages/login/login.component.ts` — login form; calls `AuthService.login()`; redirects to `/dashboard` on success
-- `frontend/src/app/pages/setup/setup.component.ts` — account setup form; calls `AuthService.register()`; redirects to `/login` on success
+- `frontend/src/app/pages/login/login.component.ts` — login form; calls `AuthService.login()`; redirects to `/dashboard` on success; styled with PixiCred theme
+- `frontend/src/app/pages/setup/setup.component.ts` — account setup form; calls `AuthService.register()`; redirects to `/login` on success; styled with PixiCred theme
 
 ---
 
@@ -101,15 +103,17 @@ export const authGuard: CanActivateFn = () => {
 ---
 
 ## Done When
-- [ ] `ng serve` starts on port 4200 with no compilation errors
-- [ ] All routes declared in `app.routes.ts` resolve to valid component files (stubs acceptable for pages not yet implemented)
-- [ ] Auth guard redirects unauthenticated users to `/login` on all protected routes
-- [ ] Auth interceptor injects Bearer token on protected requests; skips public routes
-- [ ] Auth interceptor clears JWT and redirects to `/login` on 401/403
-- [ ] Login form validates, calls API, stores JWT, and navigates to `/dashboard` on success
-- [ ] Setup form validates (including password-match check), calls API, and navigates to `/login` on success
-- [ ] JWT stored in `localStorage` under key `pixicred_jwt`; never in cookies
-- [ ] All components are standalone — no NgModule in the codebase
-- [ ] New control flow syntax (`@if`, `@for`) used — no `*ngIf` / `*ngFor`
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 10a row marked complete
+- [x] `ng serve` starts on port 4200 with no compilation errors
+- [x] All routes declared in `app.routes.ts` resolve to valid component files (stubs acceptable for pages not yet implemented)
+- [x] Auth guard redirects unauthenticated users to `/login` on all protected routes
+- [x] Auth interceptor injects Bearer token on protected requests; skips public routes
+- [x] Auth interceptor clears JWT and redirects to `/login` on 401/403
+- [x] Login form validates, calls API, stores JWT, and navigates to `/dashboard` on success
+- [x] Setup form validates (including password-match check), calls API, and navigates to `/login` on success
+- [x] JWT stored in `localStorage` under key `pixicred_jwt`; never in cookies
+- [x] All components are standalone — no NgModule in the codebase
+- [x] New control flow syntax (`@if`, `@for`) used — no `*ngIf` / `*ngFor`
+- [x] Tailwind CSS installed and configured with PixiCred custom theme; `ng build` compiles styles with no errors or warnings
+- [x] Shared utility classes (`.pxc-card`, `.pxc-btn-primary`, `.pxc-input`) defined in `src/tailwind.css`; login and setup pages use them
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 10a row marked complete

@@ -1,0 +1,76 @@
+<app-navbar />
+
+<div class="pxc-page">
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--color-pxc-navy)">Transactions</h1>
+  </div>
+
+  @if (error()) {
+    <div class="pxc-alert error mb-6">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  <div class="pxc-card">
+
+    @if (loading()) {
+      @for (_ of [1,2,3,4,5,6,7,8]; track $index) {
+        <div class="flex items-center gap-4 py-3 border-b" style="border-color: var(--color-pxc-border)">
+          <div class="pxc-skeleton h-5 w-14 rounded-full"></div>
+          <div class="flex-1">
+            <div class="pxc-skeleton h-4 w-40 mb-1"></div>
+            <div class="pxc-skeleton h-3 w-24"></div>
+          </div>
+          <div class="pxc-skeleton h-5 w-16"></div>
+        </div>
+      }
+    } @else if (transactions().length === 0) {
+      <p class="text-sm text-center py-10" style="color: var(--color-pxc-muted)">No transactions found.</p>
+    } @else {
+      @for (txn of transactions(); track txn.transactionId) {
+        <div class="pxc-table-row cursor-default">
+          <div class="shrink-0 w-16">
+            @if (txn.type === 'CHARGE') {
+              <span class="pxc-badge-neutral">Charge</span>
+            } @else {
+              <span class="pxc-badge-success">Payment</span>
+            }
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium truncate" style="color: var(--color-pxc-navy)">
+              {{ txn.merchantName ?? '—' }}
+            </p>
+            <p class="text-xs" style="color: var(--color-pxc-muted)">{{ txn.createdAt | date:'medium' }}</p>
+          </div>
+          <div class="shrink-0 text-sm font-semibold tabular-nums"
+               [style.color]="txn.type === 'PAYMENT' ? 'var(--color-pxc-success)' : 'var(--color-pxc-navy)'">
+            {{ txn.type === 'PAYMENT' ? '−' : '+' }}{{ txn.amount | currency }}
+          </div>
+        </div>
+      }
+
+      <!-- Load more -->
+      @if (hasMore()) {
+        <div class="pt-4 text-center">
+          <button class="pxc-btn-secondary text-sm" (click)="loadMore()" [disabled]="loadingMore()">
+            @if (loadingMore()) {
+              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              Loading…
+            } @else {
+              Load more
+            }
+          </button>
+        </div>
+      }
+    }
+
+  </div>
+</div>

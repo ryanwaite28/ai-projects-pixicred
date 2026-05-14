@@ -1,6 +1,6 @@
 # Spec: Frontend — Public Apply Flow (Phase 10b)
 **FR references**: FR-FE-01, FR-FE-02, FR-FE-03, FR-FE-04
-**Status**: 🔄 In Progress
+**Status**: ✅ Implemented
 **Prerequisite**: Phase 10a (routing + auth shell in place)
 
 ---
@@ -31,7 +31,7 @@ FR-FE-01 through FR-FE-04 define the public entry point of the product. These pa
 
 ### Welcome page (`/`)
 
-- Angular Material layout: hero section with product name "PixiCred" and tagline
+- PixiCred Tailwind theme layout: hero section with product name "PixiCred" and tagline
 - Two primary CTAs: "Apply Now" → `/apply`; "Login" → `/login`
 - Brief feature section (3 cards): No annual fee / Build credit / Instant decision
 - No API calls
@@ -79,13 +79,13 @@ No auth header injected (public routes bypassed by auth interceptor).
 ---
 
 ## Done When
-- [ ] Welcome page renders with Apply and Login CTAs navigating to correct routes
-- [ ] Apply form validates all fields; `mockSsn` enforces exactly 5 digits
-- [ ] Apply form calls `POST /applications`; on success navigates to confirmation with `applicationId` in state
-- [ ] Confirmation page displays `applicationId` prominently; redirects to `/apply` if no state
-- [ ] Status page calls `GET /applications/:id`; renders all three status states correctly
-- [ ] Status page shows APPROVED prompt with link to `/setup`
-- [ ] All Angular Material components used for layout/inputs/buttons — no raw HTML form elements without Material wrappers
-- [ ] New control flow syntax used throughout (`@if`, `@for`, `@switch`)
-- [ ] Spec status updated to ✅ Implemented
-- [ ] IMPLEMENTATION_PLAN.md Phase 10b row marked complete
+- [x] Welcome page renders with Apply and Login CTAs navigating to correct routes
+- [x] Apply form validates all fields; `mockSsn` enforces exactly 5 digits
+- [x] Apply form calls `POST /applications`; on success navigates to confirmation with `applicationId` in state
+- [x] Confirmation page displays `applicationId` prominently; redirects to `/apply` if no state
+- [x] Status page calls `GET /applications/:id`; renders all three status states correctly
+- [x] Status page shows APPROVED prompt with link to `/setup`
+- [x] All pages use PixiCred shared utility classes (.pxc-card, .pxc-btn-primary, .pxc-input) — no inline or ad-hoc styling
+- [x] New control flow syntax used throughout (`@if`, `@for`, `@switch`)
+- [x] Spec status updated to ✅ Implemented
+- [x] IMPLEMENTATION_PLAN.md Phase 10b row marked complete

@@ -1,0 +1,90 @@
+<app-navbar />
+
+<div class="pxc-page max-w-2xl">
+
+  <h1 class="text-2xl font-bold mb-1" style="color: var(--color-pxc-navy)">Notification settings</h1>
+  <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">Choose which email notifications you receive.</p>
+
+  @if (errorMessage()) {
+    <div class="pxc-alert error mb-5">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="pxc-card p-0 divide-y" style="border-color: var(--color-pxc-border)">
+
+    @if (loading()) {
+      @for (_ of [1,2,3]; track $index) {
+        <div class="flex items-center justify-between px-6 py-5">
+          <div>
+            <div class="pxc-skeleton h-4 w-40 mb-2"></div>
+            <div class="pxc-skeleton h-3 w-56"></div>
+          </div>
+          <div class="pxc-skeleton h-6 w-10 rounded-full"></div>
+        </div>
+      }
+    }
+
+    @if (prefs(); as p) {
+
+      <!-- Transaction notifications -->
+      <div class="flex items-center justify-between px-6 py-5">
+        <div>
+          <p class="text-sm font-semibold" style="color: var(--color-pxc-navy)">Transaction notifications</p>
+          <p class="text-xs mt-0.5" style="color: var(--color-pxc-muted)">Email me when a charge or payment posts to my account</p>
+        </div>
+        <label class="relative inline-flex items-center shrink-0"
+               [class.opacity-50]="pending().transactionsEnabled">
+          <input type="checkbox"
+                 class="sr-only peer"
+                 [checked]="p.transactionsEnabled"
+                 [disabled]="pending().transactionsEnabled"
+                 (change)="toggle('transactionsEnabled', !p.transactionsEnabled)" />
+          <div class="toggle-track peer-checked:bg-blue-500"></div>
+          <div class="toggle-thumb" [class.translate-x-4]="p.transactionsEnabled"></div>
+        </label>
+      </div>
+
+      <!-- Statement notifications -->
+      <div class="flex items-center justify-between px-6 py-5">
+        <div>
+          <p class="text-sm font-semibold" style="color: var(--color-pxc-navy)">Statement notifications</p>
+          <p class="text-xs mt-0.5" style="color: var(--color-pxc-muted)">Email me when a new statement is generated</p>
+        </div>
+        <label class="relative inline-flex items-center shrink-0"
+               [class.opacity-50]="pending().statementsEnabled">
+          <input type="checkbox"
+                 class="sr-only peer"
+                 [checked]="p.statementsEnabled"
+                 [disabled]="pending().statementsEnabled"
+                 (change)="toggle('statementsEnabled', !p.statementsEnabled)" />
+          <div class="toggle-track peer-checked:bg-blue-500"></div>
+          <div class="toggle-thumb" [class.translate-x-4]="p.statementsEnabled"></div>
+        </label>
+      </div>
+
+      <!-- Payment reminder notifications -->
+      <div class="flex items-center justify-between px-6 py-5">
+        <div>
+          <p class="text-sm font-semibold" style="color: var(--color-pxc-navy)">Payment reminder notifications</p>
+          <p class="text-xs mt-0.5" style="color: var(--color-pxc-muted)">Email me when a payment is coming due</p>
+        </div>
+        <label class="relative inline-flex items-center shrink-0"
+               [class.opacity-50]="pending().paymentRemindersEnabled">
+          <input type="checkbox"
+                 class="sr-only peer"
+                 [checked]="p.paymentRemindersEnabled"
+                 [disabled]="pending().paymentRemindersEnabled"
+                 (change)="toggle('paymentRemindersEnabled', !p.paymentRemindersEnabled)" />
+          <div class="toggle-track peer-checked:bg-blue-500"></div>
+          <div class="toggle-thumb" [class.translate-x-4]="p.paymentRemindersEnabled"></div>
+        </label>
+      </div>
+
+    }
+  </div>
+</div>

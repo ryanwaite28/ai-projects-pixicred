@@ -1,0 +1,87 @@
+<app-navbar />
+
+<div class="pxc-page max-w-xl">
+
+  <h1 class="text-2xl font-bold mb-6" style="color: var(--color-pxc-navy)">Make a payment</h1>
+
+  <!-- Current balance info -->
+  <div class="pxc-card-sm mb-4 flex items-center justify-between">
+    <span class="text-sm" style="color: var(--color-pxc-muted)">Current balance</span>
+    <span class="text-lg font-bold" style="color: var(--color-pxc-navy)">{{ currentBalance() | currency }}</span>
+  </div>
+
+  <!-- Success confirmation -->
+  @if (confirmation(); as result) {
+    <div class="pxc-alert success mb-6">
+      <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>
+        Payment of <strong>{{ result.resolvedAmount | currency }}</strong> received successfully.
+      </span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage()) {
+    <div class="pxc-alert error mb-6">
+      <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="pxc-card">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-5">
+
+      <!-- Pay Full toggle -->
+      <div class="flex items-center justify-between p-4 rounded-xl border"
+           style="border-color: var(--color-pxc-border); background-color: var(--color-pxc-slate)">
+        <div>
+          <p class="text-sm font-medium" style="color: var(--color-pxc-navy)">Pay full balance</p>
+          <p class="text-xs" style="color: var(--color-pxc-muted)">Pay off the entire current balance</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" formControlName="payFull" class="sr-only peer" />
+          <div class="w-10 h-6 rounded-full peer-checked:bg-blue-500 transition-colors"
+               style="background-color: var(--color-pxc-border)">
+            <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 transition-transform peer-checked:translate-x-4"
+                 [class.translate-x-4]="isFullBalance"></div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Amount input (hidden when FULL) -->
+      @if (!isFullBalance) {
+        <div>
+          <label for="amount" class="pxc-label">Payment amount (USD)</label>
+          <input id="amount" type="number" formControlName="amount" min="0.01" step="0.01"
+            placeholder="0.00"
+            [class.error]="form.controls.amount.invalid && form.controls.amount.touched"
+            class="pxc-input" />
+          @if (form.controls.amount.invalid && form.controls.amount.touched) {
+            <p class="pxc-field-error">Enter a valid amount greater than $0.00.</p>
+          }
+        </div>
+      }
+
+      <button type="submit" class="pxc-btn-primary w-full" [disabled]="loading()">
+        @if (loading()) {
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          Processing…
+        } @else if (isFullBalance) {
+          Pay full balance
+        } @else {
+          Submit payment
+        }
+      </button>
+
+    </form>
+  </div>
+
+</div>

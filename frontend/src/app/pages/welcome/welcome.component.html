@@ -1,0 +1,109 @@
+<div class="min-h-screen flex flex-col" style="background-color: var(--color-pxc-slate)">
+
+  <!-- Top bar -->
+  <header class="pxc-topbar">
+    <span class="pxc-logo">Pixi<span>Cred</span></span>
+    <a routerLink="/login" class="pxc-btn-secondary text-xs px-4 py-2"
+       style="color: white; background: transparent; border-color: rgba(255,255,255,0.2)">
+      Sign in
+    </a>
+  </header>
+
+  <!-- Farewell banner -->
+  @if (showFarewell()) {
+    <div class="pxc-alert error flex items-start gap-3 px-6 py-4 rounded-none border-b"
+         style="background-color: var(--color-pxc-error-bg); border-color: #fca5a5">
+      <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+           style="color: var(--color-pxc-error)">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <p class="text-sm font-semibold" style="color: #991b1b">Your account has been closed.</p>
+        <p class="text-xs mt-0.5" style="color: #b91c1c">Thank you for using PixiCred. We're sorry to see you go.</p>
+      </div>
+    </div>
+  }
+
+  <!-- Hero -->
+  <section class="flex flex-col items-center justify-center text-center px-6 py-24"
+           style="background: linear-gradient(135deg, var(--color-pxc-navy) 0%, var(--color-pxc-navy-light) 100%)">
+    <span class="pxc-badge-neutral mb-5 text-xs tracking-widest uppercase">Credit made simple</span>
+    <h1 class="text-5xl font-extrabold text-white tracking-tight leading-tight max-w-2xl mb-4">
+      The credit card built for&nbsp;<span style="color: var(--color-pxc-blue)">real life</span>
+    </h1>
+    <p class="text-lg max-w-md mb-10" style="color: #94a3b8">
+      Apply in minutes. Get an instant decision. No annual fee, ever.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a routerLink="/apply" class="pxc-btn-primary text-base px-8 py-4">Apply now — it's free</a>
+      <a routerLink="/apply/status" class="pxc-btn-secondary text-base px-8 py-4"
+         style="background: transparent; border-color: rgba(255,255,255,0.25); color: white">
+        Check my application
+      </a>
+    </div>
+  </section>
+
+  <!-- Feature cards -->
+  <section class="pxc-page py-20">
+    <h2 class="text-2xl font-bold text-center mb-12" style="color: var(--color-pxc-navy)">
+      Why PixiCred?
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <div class="pxc-card text-center">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+             style="background-color: var(--color-pxc-blue-light)">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               style="color: var(--color-pxc-blue)">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2" style="color: var(--color-pxc-navy)">No annual fee</h3>
+        <p class="text-sm" style="color: var(--color-pxc-muted)">
+          Keep more of what you earn. PixiCred never charges you just for having the card.
+        </p>
+      </div>
+
+      <div class="pxc-card text-center">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+             style="background-color: var(--color-pxc-success-bg)">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               style="color: var(--color-pxc-success)">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2" style="color: var(--color-pxc-navy)">Build your credit</h3>
+        <p class="text-sm" style="color: var(--color-pxc-muted)">
+          Every on-time payment is reported. Use PixiCred responsibly and watch your score grow.
+        </p>
+      </div>
+
+      <div class="pxc-card text-center">
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+             style="background-color: var(--color-pxc-warning-bg)">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+               style="color: var(--color-pxc-warning)">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2" style="color: var(--color-pxc-navy)">Instant decision</h3>
+        <p class="text-sm" style="color: var(--color-pxc-muted)">
+          Submit your application and get a decision in seconds — no waiting, no uncertainty.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t py-8 text-center text-xs"
+          style="border-color: var(--color-pxc-border); color: var(--color-pxc-muted)">
+    © {{ year }} PixiCred. All rights reserved. &nbsp;·&nbsp;
+    <a routerLink="/login" class="pxc-link text-xs">Sign in</a>
+  </footer>
+
+</div>

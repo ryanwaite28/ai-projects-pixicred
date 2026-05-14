@@ -486,9 +486,9 @@ All ID parameters on every service function and handler are validated with `asse
 - Auth guard checks `exp` client-side on every navigation
 
 **Done when**:
-- [ ] `ng serve` starts on port 4200; all routes resolve
-- [ ] Auth guard and interceptor work end-to-end; 401/403 clears JWT and redirects to `/login`
-- [ ] Login and setup pages submit correctly to local API
+- [x] `ng serve` starts on port 4200; all routes resolve
+- [x] Auth guard and interceptor work end-to-end; 401/403 clears JWT and redirects to `/login`
+- [x] Login and setup pages submit correctly to local API
 
 ---
 
@@ -506,9 +506,9 @@ All ID parameters on every service function and handler are validated with `asse
 - `frontend/src/app/services/application.service.ts`
 
 **Done when**:
-- [ ] Full apply → confirmation → status flow works end-to-end against local API
-- [ ] All three status states render correctly (PENDING / APPROVED / DECLINED)
-- [ ] APPROVED status shows link to `/setup`
+- [x] Full apply → confirmation → status flow works end-to-end against local API
+- [x] All three status states render correctly (PENDING / APPROVED / DECLINED)
+- [x] APPROVED status shows link to `/setup`
 
 ---
 
@@ -526,10 +526,10 @@ All ID parameters on every service function and handler are validated with `asse
 - `frontend/src/app/pages/statements/`
 
 **Done when**:
-- [ ] Dashboard loads account summary; shows last 5 transactions
-- [ ] Transactions cursor pagination works; "Load More" hides when exhausted
-- [ ] Payments FULL toggle sends correct payload; confirmation shows resolved amount
-- [ ] Statements detail expands inline; on-demand generate prepends new statement
+- [x] Dashboard loads account summary; shows last 5 transactions
+- [x] Transactions cursor pagination works; "Load More" hides when exhausted
+- [x] Payments FULL toggle sends correct payload; confirmation shows resolved amount
+- [x] Statements detail expands inline; on-demand generate prepends new statement
 
 ---
 
@@ -545,8 +545,8 @@ All ID parameters on every service function and handler are validated with `asse
 - `frontend/src/app/pages/settings-account/`
 
 **Done when**:
-- [ ] Notification toggles fire PATCH immediately on change; revert on error
-- [ ] Close account modal confirms before calling DELETE; logs out and navigates to `/` on success
+- [x] Notification toggles fire PATCH immediately on change; revert on error
+- [x] Close account modal confirms before calling DELETE; logs out and navigates to `/` on success
 
 ---
 
@@ -588,10 +588,10 @@ and reported your findings.
 | 7 | API Gateway & Full Wiring | `specs/10a-api-wiring.md` | ✅ Complete | 2026-05-13 |
 | 8 | DevOps & Hardening | `specs/10b-devops-hardening.md` | ✅ Complete | 2026-05-13 |
 | 9 | Backend Auth | `specs/11-auth.md` | ✅ Complete | 2026-05-13 |
-| 10a | Frontend: Scaffold & Auth Shell | `specs/12a-frontend-scaffold.md` | ⬜ Not Started | — |
-| 10b | Frontend: Public Apply Flow | `specs/12b-frontend-public.md` | ⬜ Not Started | — |
-| 10c | Frontend: Account Pages | `specs/12c-frontend-account.md` | ⬜ Not Started | — |
-| 10d | Frontend: Settings Pages | `specs/12d-frontend-settings.md` | ⬜ Not Started | — |
+| 10a | Frontend: Scaffold & Auth Shell | `specs/12a-frontend-scaffold.md` | ✅ Complete | 2026-05-13 |
+| 10b | Frontend: Public Apply Flow | `specs/12b-frontend-public.md` | ✅ Complete | 2026-05-13 |
+| 10c | Frontend: Account Pages | `specs/12c-frontend-account.md` | ✅ Complete | 2026-05-13 |
+| 10d | Frontend: Settings Pages | `specs/12d-frontend-settings.md` | ✅ Complete | 2026-05-13 |
 
 ---
 

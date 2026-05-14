@@ -217,7 +217,7 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 - **FR-FE-12**: **Account settings page** (`/settings/account`) — read-only display of account ID, credit limit, holder email, and creation date; "Close Account" button opens a confirmation modal before calling `DELETE /accounts/:accountId`; on success redirects to `/` with a farewell message; auth-required
 - **FR-FE-13**: **Auth guard** — all routes under `/dashboard`, `/transactions`, `/payments`, `/statements`, `/settings/**` are protected; unauthenticated users are redirected to `/login`; JWT expiry is checked client-side on each navigation
 - **FR-FE-14**: **Angular framework** — Angular 17+ with standalone components and the new control flow syntax; Angular Router for SPA navigation; Angular `HttpClient` with an auth interceptor that injects `Authorization: Bearer <jwt>` on all non-public requests; Angular Signals for reactive state management
-- **FR-FE-15**: **Styling** — Angular Material component library for UI components; responsive layout targeting mobile and desktop; no custom design system beyond Material theming
+- **FR-FE-15**: **Styling** — Tailwind CSS for all styling; custom PixiCred fintech design theme (navy/blue palette, Inter font, card-based layout); responsive targeting mobile and desktop; no external component library
 - **FR-FE-16**: **Hosting** — `ng build --output-path dist/frontend` artifact deployed to S3 bucket `pixicred-{env}-frontend` with static website hosting; served via CloudFront distribution using the pre-provisioned ACM wildcard certificate; `pixicred.com` and `www.pixicred.com` Route 53 A-records alias to the CloudFront distribution
 - **FR-FE-17**: **Local development** — `ng serve` at `http://localhost:4200`; API calls proxied to `http://localhost:3000` via Angular's `proxy.conf.json` to avoid CORS during development
 
@@ -758,7 +758,7 @@ type ServiceAction =
 | Frontend routing | Angular Router |
 | Frontend HTTP | Angular `HttpClient` + auth interceptor |
 | Frontend state | Angular Signals |
-| Frontend UI library | Angular Material |
+| Frontend UI library | Tailwind CSS (custom PixiCred fintech theme) |
 | Frontend build | `ng build` → `dist/frontend/` |
 | Frontend hosting (AWS) | S3 + CloudFront (pre-provisioned ACM wildcard cert) |
 | Frontend local dev | `ng serve` at `:4200` with proxy to `:3000` |
@@ -1243,7 +1243,7 @@ Work backwards from a fully operational system.
 - [ ] Statements list + detail + on-demand generate (FR-FE-10)
 - [ ] Notification settings with live-toggle (FR-FE-11)
 - [ ] Account settings + close account modal (FR-FE-12)
-- [ ] Angular Material theme applied consistently
+- [ ] Tailwind CSS fintech theme applied consistently across all pages
 - [ ] `proxy.conf.json` wired for local `ng serve`
 - [ ] `environment.ts` / `environment.prod.ts` with correct API URLs
 - [ ] `ng build` produces deployable artifact in `dist/frontend/`
@@ -1281,7 +1281,7 @@ Work backwards from a fully operational system.
 - **Single AWS account** with env-prefixed naming
 - **No caching layer** — no Redis, no ElastiCache
 - **Angular 17+ (standalone components)** for the frontend SPA — not React, not Vue, not Next.js
-- **Angular Material** for UI components — no custom design system
+- **Tailwind CSS** for frontend styling — custom PixiCred fintech design theme; no component library
 - **JWT (HS256, 24h)** for portal auth — not sessions, not OAuth, not Cognito
 - **bcrypt (cost 12)** for password hashing — not SHA-256, not argon2
 - **S3 + CloudFront** for frontend hosting — not Amplify, not Vercel

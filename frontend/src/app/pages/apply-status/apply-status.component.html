@@ -1,0 +1,128 @@
+<div class="pxc-auth-page">
+
+  <div class="mb-8 text-center">
+    <a routerLink="/" class="pxc-logo text-2xl">Pixi<span>Cred</span></a>
+  </div>
+
+  <div class="pxc-auth-card w-full max-w-lg">
+
+    <h1 class="text-2xl font-bold mb-1" style="color: var(--color-pxc-navy)">Check your application</h1>
+    <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">
+      Enter the confirmation code from your submission.
+    </p>
+
+    <!-- Error banner -->
+    @if (errorMessage()) {
+      <div class="pxc-alert error mb-5">
+        <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Lookup form -->
+    <form [formGroup]="form" (ngSubmit)="check()" novalidate class="flex gap-3 mb-6">
+      <div class="flex-1">
+        <input
+          id="code"
+          type="text"
+          formControlName="code"
+          autocomplete="off"
+          placeholder="Paste your confirmation code"
+          [class.error]="form.controls.code.invalid && form.controls.code.touched"
+          class="pxc-input font-mono text-sm"
+        />
+        @if (form.controls.code.invalid && form.controls.code.touched) {
+          <p class="pxc-field-error">Confirmation code is required.</p>
+        }
+      </div>
+      <button type="submit" class="pxc-btn-primary shrink-0" [disabled]="loading()">
+        @if (loading()) {
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        } @else {
+          Check
+        }
+      </button>
+    </form>
+
+    <!-- Status result -->
+    @if (result(); as r) {
+      <div class="pxc-divider"></div>
+
+      @if (isPending(r.status)) {
+        <div class="text-center py-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+               style="background-color: var(--color-pxc-warning-bg)">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 style="color: var(--color-pxc-warning)">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span class="pxc-badge-warning mb-3">Under Review</span>
+          <h2 class="text-lg font-bold mt-3 mb-1" style="color: var(--color-pxc-navy)">
+            Hi {{ r.firstName }}, we're reviewing your application.
+          </h2>
+          <p class="text-sm" style="color: var(--color-pxc-muted)">
+            Your application is being reviewed. Check back soon.
+          </p>
+        </div>
+      }
+
+      @if (isApproved(r.status)) {
+        <div class="text-center py-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+               style="background-color: var(--color-pxc-success-bg)">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 style="color: var(--color-pxc-success)">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <span class="pxc-badge-success mb-3">Approved</span>
+          <h2 class="text-lg font-bold mt-3 mb-2" style="color: var(--color-pxc-navy)">
+            Congratulations, {{ r.firstName }}!
+          </h2>
+          <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">
+            Your application was approved. Check your email for your
+            <strong>Account Setup Code</strong> and visit the setup page to create your account.
+          </p>
+          <a routerLink="/setup" class="pxc-btn-primary w-full">Activate my account</a>
+        </div>
+      }
+
+      @if (isDeclined(r.status)) {
+        <div class="text-center py-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+               style="background-color: var(--color-pxc-error-bg)">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 style="color: var(--color-pxc-error)">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <span class="pxc-badge-error mb-3">Not approved</span>
+          <h2 class="text-lg font-bold mt-3 mb-2" style="color: var(--color-pxc-navy)">
+            We're sorry, {{ r.firstName }}.
+          </h2>
+          <p class="text-sm" style="color: var(--color-pxc-muted)">
+            We were unable to approve your application at this time.
+          </p>
+        </div>
+      }
+    }
+
+    <div class="pxc-divider"></div>
+
+    <p class="text-sm text-center" style="color: var(--color-pxc-muted)">
+      Haven't applied yet?
+      <a routerLink="/apply" class="pxc-link ml-1">Apply now</a>
+    </p>
+
+  </div>
+</div>

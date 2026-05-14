@@ -1,0 +1,162 @@
+<app-navbar />
+
+<div class="pxc-page">
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold" style="color: var(--color-pxc-navy)">Statements</h1>
+    <button class="pxc-btn-secondary text-sm" (click)="generate()" [disabled]="generating()">
+      @if (generating()) {
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        Generating…
+      } @else {
+        Generate statement
+      }
+    </button>
+  </div>
+
+  @if (generateError()) {
+    <div class="pxc-alert error mb-4">
+      <span>{{ generateError() }}</span>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="pxc-alert error mb-6">
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="pxc-card space-y-3">
+      @for (_ of [1,2,3]; track $index) {
+        <div class="pxc-skeleton h-14 rounded-xl"></div>
+      }
+    </div>
+  } @else if (statements().length === 0) {
+    <div class="pxc-card text-center py-10">
+      <p class="text-sm" style="color: var(--color-pxc-muted)">No statements yet. Generate your first statement above.</p>
+    </div>
+  } @else {
+    <div class="pxc-card p-0 overflow-hidden">
+
+      @for (stmt of statements(); track stmt.statementId) {
+        <!-- Statement row -->
+        <div class="border-b last:border-b-0" style="border-color: var(--color-pxc-border)">
+          <button
+            type="button"
+            (click)="toggleDetail(stmt.statementId)"
+            class="w-full flex items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-slate-50">
+
+            <!-- Chevron -->
+            <svg class="w-4 h-4 shrink-0 transition-transform"
+                 [class.rotate-90]="expandedId() === stmt.statementId"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 style="color: var(--color-pxc-muted)">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+
+            <!-- Period -->
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold" style="color: var(--color-pxc-navy)">
+                {{ stmt.periodStart | date:'MMM d' }} – {{ stmt.periodEnd | date:'MMM d, y' }}
+              </p>
+              <p class="text-xs" style="color: var(--color-pxc-muted)">
+                Due {{ stmt.dueDate | date:'mediumDate' }}
+              </p>
+            </div>
+
+            <!-- Balances -->
+            <div class="hidden sm:flex gap-6 text-right shrink-0">
+              <div>
+                <p class="text-xs" style="color: var(--color-pxc-muted)">Closing balance</p>
+                <p class="text-sm font-semibold" style="color: var(--color-pxc-navy)">{{ stmt.closingBalance | currency }}</p>
+              </div>
+              <div>
+                <p class="text-xs" style="color: var(--color-pxc-muted)">Min. payment</p>
+                <p class="text-sm font-semibold" style="color: var(--color-pxc-navy)">{{ stmt.minimumPaymentDue | currency }}</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Expanded detail -->
+          @if (expandedId() === stmt.statementId) {
+            <div class="border-t px-6 py-5" style="border-color: var(--color-pxc-border); background-color: var(--color-pxc-slate)">
+
+              @if (detailLoading()) {
+                <div class="flex justify-center py-6">
+                  <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"
+                       style="color: var(--color-pxc-blue)">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                </div>
+              } @else if (detailError()) {
+                <p class="text-sm" style="color: var(--color-pxc-error)">{{ detailError() }}</p>
+              } @else if (expandedDetail(); as detail) {
+
+                <!-- Statement summary -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                  <div class="pxc-stat">
+                    <span class="pxc-stat-label">Opening balance</span>
+                    <span class="pxc-stat-value text-base">{{ detail.openingBalance | currency }}</span>
+                  </div>
+                  <div class="pxc-stat">
+                    <span class="pxc-stat-label">Closing balance</span>
+                    <span class="pxc-stat-value text-base">{{ detail.closingBalance | currency }}</span>
+                  </div>
+                  <div class="pxc-stat">
+                    <span class="pxc-stat-label">Min. payment due</span>
+                    <span class="pxc-stat-value text-base">{{ detail.minimumPaymentDue | currency }}</span>
+                  </div>
+                  <div class="pxc-stat">
+                    <span class="pxc-stat-label">Due date</span>
+                    <span class="pxc-stat-value text-base">{{ detail.dueDate | date:'mediumDate' }}</span>
+                  </div>
+                </div>
+
+                <!-- Transaction breakdown -->
+                <h3 class="text-sm font-semibold mb-3" style="color: var(--color-pxc-navy)">
+                  Transactions ({{ detail.transactions.length }})
+                </h3>
+
+                @if (detail.transactions.length === 0) {
+                  <p class="text-sm" style="color: var(--color-pxc-muted)">No transactions in this period.</p>
+                } @else {
+                  <div class="bg-white rounded-xl border overflow-hidden" style="border-color: var(--color-pxc-border)">
+                    @for (txn of detail.transactions; track txn.transactionId) {
+                      <div class="pxc-table-row px-4 cursor-default hover:bg-white">
+                        <div class="shrink-0">
+                          @if (txn.type === 'CHARGE') {
+                            <span class="pxc-badge-neutral">Charge</span>
+                          } @else {
+                            <span class="pxc-badge-success">Payment</span>
+                          }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium truncate" style="color: var(--color-pxc-navy)">
+                            {{ txn.merchantName ?? '—' }}
+                          </p>
+                          <p class="text-xs" style="color: var(--color-pxc-muted)">{{ txn.createdAt | date:'mediumDate' }}</p>
+                        </div>
+                        <div class="shrink-0 text-sm font-semibold tabular-nums"
+                             [style.color]="txn.type === 'PAYMENT' ? 'var(--color-pxc-success)' : 'var(--color-pxc-navy)'">
+                          {{ txn.type === 'PAYMENT' ? '−' : '+' }}{{ txn.amount | currency }}
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+              }
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+  }
+
+</div>

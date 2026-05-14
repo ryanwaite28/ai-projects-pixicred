@@ -1,0 +1,139 @@
+<div class="min-h-screen" style="background-color: var(--color-pxc-slate)">
+
+  <!-- Top bar -->
+  <header class="pxc-topbar">
+    <a routerLink="/" class="pxc-logo">Pixi<span>Cred</span></a>
+    <a routerLink="/login" class="pxc-btn-ghost text-xs"
+       style="color: #94a3b8">Sign in</a>
+  </header>
+
+  <div class="pxc-page max-w-2xl">
+
+    <!-- Heading -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-1" style="color: var(--color-pxc-navy)">Apply for a PixiCred card</h1>
+      <p class="text-sm" style="color: var(--color-pxc-muted)">Takes about 2 minutes. No impact to your credit score.</p>
+    </div>
+
+    <!-- Error banner -->
+    @if (errorMessage()) {
+      <div class="pxc-alert error mb-6">
+        <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <div class="pxc-card">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-5">
+
+        <!-- Name row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label for="firstName" class="pxc-label">First name</label>
+            <input id="firstName" type="text" formControlName="firstName" autocomplete="given-name"
+              placeholder="Jane"
+              [class.error]="form.controls.firstName.invalid && form.controls.firstName.touched"
+              class="pxc-input" />
+            @if (form.controls.firstName.invalid && form.controls.firstName.touched) {
+              <p class="pxc-field-error">First name is required.</p>
+            }
+          </div>
+          <div>
+            <label for="lastName" class="pxc-label">Last name</label>
+            <input id="lastName" type="text" formControlName="lastName" autocomplete="family-name"
+              placeholder="Smith"
+              [class.error]="form.controls.lastName.invalid && form.controls.lastName.touched"
+              class="pxc-input" />
+            @if (form.controls.lastName.invalid && form.controls.lastName.touched) {
+              <p class="pxc-field-error">Last name is required.</p>
+            }
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="email" class="pxc-label">Email address</label>
+          <input id="email" type="email" formControlName="email" autocomplete="email"
+            placeholder="you@example.com"
+            [class.error]="form.controls.email.invalid && form.controls.email.touched"
+            class="pxc-input" />
+          @if (form.controls.email.invalid && form.controls.email.touched) {
+            <p class="pxc-field-error">
+              @if (form.controls.email.hasError('required')) { Email is required. }
+              @else { Enter a valid email address. }
+            </p>
+          }
+        </div>
+
+        <!-- Date of birth -->
+        <div>
+          <label for="dateOfBirth" class="pxc-label">Date of birth</label>
+          <input id="dateOfBirth" type="date" formControlName="dateOfBirth" autocomplete="bday"
+            [class.error]="form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched"
+            class="pxc-input" />
+          @if (form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched) {
+            <p class="pxc-field-error">Date of birth is required.</p>
+          }
+        </div>
+
+        <!-- Annual income -->
+        <div>
+          <label for="annualIncome" class="pxc-label">Annual income (USD)</label>
+          <input id="annualIncome" type="number" formControlName="annualIncome" min="0"
+            placeholder="60000"
+            [class.error]="form.controls.annualIncome.invalid && form.controls.annualIncome.touched"
+            class="pxc-input" />
+          @if (form.controls.annualIncome.invalid && form.controls.annualIncome.touched) {
+            <p class="pxc-field-error">
+              @if (form.controls.annualIncome.hasError('required')) { Annual income is required. }
+              @else { Income must be 0 or greater. }
+            </p>
+          }
+        </div>
+
+        <!-- Mock SSN -->
+        <div>
+          <label for="mockSsn" class="pxc-label">Last 5 digits of SSN</label>
+          <input id="mockSsn" type="text" formControlName="mockSsn"
+            inputmode="numeric" maxlength="5" placeholder="12345"
+            [class.error]="form.controls.mockSsn.invalid && form.controls.mockSsn.touched"
+            class="pxc-input font-mono tracking-widest" />
+          @if (form.controls.mockSsn.invalid && form.controls.mockSsn.touched) {
+            <p class="pxc-field-error">Enter exactly 5 digits.</p>
+          }
+        </div>
+
+        <!-- Divider + submit -->
+        <div class="pxc-divider mb-0"></div>
+
+        <div class="flex items-center justify-between gap-4 pt-1">
+          <p class="text-xs" style="color: var(--color-pxc-muted)">
+            By submitting you agree to our terms and privacy policy.
+          </p>
+          <button type="submit" class="pxc-btn-primary shrink-0" [disabled]="loading()">
+            @if (loading()) {
+              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Submitting…
+            } @else {
+              Submit application
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <p class="text-xs text-center mt-6" style="color: var(--color-pxc-muted)">
+      Already applied?
+      <a routerLink="/apply/status" class="pxc-link text-xs ml-1">Check your application status</a>
+    </p>
+
+  </div>
+</div>

@@ -1,0 +1,125 @@
+<app-navbar />
+
+<div class="pxc-page max-w-2xl">
+
+  <h1 class="text-2xl font-bold mb-1" style="color: var(--color-pxc-navy)">Account settings</h1>
+  <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">View your account details.</p>
+
+  @if (closeError()) {
+    <div class="pxc-alert error mb-5">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ closeError() }}</span>
+    </div>
+  }
+
+  @if (loadError()) {
+    <div class="pxc-alert error mb-5"><span>{{ loadError() }}</span></div>
+  }
+
+  <!-- Account info card -->
+  <div class="pxc-card mb-6">
+
+    @if (loading()) {
+      <div class="space-y-5">
+        @for (_ of [1,2,3,4,5]; track $index) {
+          <div class="flex items-center justify-between">
+            <div class="pxc-skeleton h-3 w-28"></div>
+            <div class="pxc-skeleton h-4 w-40"></div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (account(); as acc) {
+      <dl class="space-y-5">
+        <div class="flex items-start justify-between gap-4">
+          <dt class="pxc-stat-label">Account ID</dt>
+          <dd class="text-sm font-mono font-medium text-right break-all" style="color: var(--color-pxc-navy)">{{ acc.accountId }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Email address</dt>
+          <dd class="text-sm font-medium" style="color: var(--color-pxc-navy)">{{ email() ?? '—' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Credit limit</dt>
+          <dd class="text-sm font-medium" style="color: var(--color-pxc-navy)">{{ acc.creditLimit | currency }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Member since</dt>
+          <dd class="text-sm font-medium" style="color: var(--color-pxc-navy)">{{ acc.createdAt | date:'mediumDate' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Account status</dt>
+          <dd>
+            @if (acc.status === 'ACTIVE') {
+              <span class="pxc-badge-success">Active</span>
+            } @else if (acc.status === 'SUSPENDED') {
+              <span class="pxc-badge-warning">Suspended</span>
+            } @else {
+              <span class="pxc-badge-error">Closed</span>
+            }
+          </dd>
+        </div>
+      </dl>
+    }
+  </div>
+
+  <!-- Danger zone -->
+  @if (account()?.status !== 'CLOSED') {
+    <div class="pxc-card border-2" style="border-color: var(--color-pxc-error-bg)">
+      <h2 class="text-base font-bold mb-1" style="color: var(--color-pxc-error)">Close account</h2>
+      <p class="text-sm mb-4" style="color: var(--color-pxc-muted)">
+        Once your account is closed, all access is revoked and this action cannot be undone.
+      </p>
+      <button class="pxc-btn-secondary text-sm" style="color: var(--color-pxc-error); border-color: var(--color-pxc-error)"
+              (click)="openModal()" [disabled]="loading()">
+        Close my account
+      </button>
+    </div>
+  }
+
+</div>
+
+<!-- Confirmation modal -->
+@if (showModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center px-4"
+       style="background-color: rgba(15,23,42,0.6)" (click)="cancelModal()">
+    <div class="pxc-card w-full max-w-sm" (click)="$event.stopPropagation()">
+
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+           style="background-color: var(--color-pxc-error-bg)">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+             style="color: var(--color-pxc-error)">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+      </div>
+
+      <h3 class="text-lg font-bold mb-2" style="color: var(--color-pxc-navy)">Close your account?</h3>
+      <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">
+        Are you sure you want to close your account? This cannot be undone.
+      </p>
+
+      <div class="flex gap-3">
+        <button class="pxc-btn-secondary flex-1" (click)="cancelModal()" [disabled]="closing()">
+          Cancel
+        </button>
+        <button class="pxc-btn-primary flex-1" (click)="confirmClose()" [disabled]="closing()"
+                style="background-color: var(--color-pxc-error)">
+          @if (closing()) {
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Closing…
+          } @else {
+            Yes, close account
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

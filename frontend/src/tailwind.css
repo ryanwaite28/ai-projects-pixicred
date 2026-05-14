@@ -1,0 +1,244 @@
+/* ── Google Fonts — must be first ───────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+/* ── PixiCred Design Tokens ─────────────────────────────────────────────── */
+@theme {
+  --color-pxc-navy:        #0f172a;
+  --color-pxc-navy-light:  #1e293b;
+  --color-pxc-blue:        #3b82f6;
+  --color-pxc-blue-dark:   #1d4ed8;
+  --color-pxc-blue-light:  #eff6ff;
+  --color-pxc-slate:       #f8fafc;
+  --color-pxc-muted:       #64748b;
+  --color-pxc-border:      #e2e8f0;
+  --color-pxc-success:     #22c55e;
+  --color-pxc-success-bg:  #f0fdf4;
+  --color-pxc-error:       #ef4444;
+  --color-pxc-error-bg:    #fef2f2;
+  --color-pxc-warning:     #f59e0b;
+  --color-pxc-warning-bg:  #fffbeb;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background-color: var(--color-pxc-slate);
+  color: var(--color-pxc-navy);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Shared Components ───────────────────────────────────────────────────── */
+@layer components {
+
+  .pxc-card {
+    @apply bg-white rounded-2xl border p-6;
+    border-color: var(--color-pxc-border);
+    box-shadow: 0 1px 4px 0 rgba(15, 23, 42, 0.06);
+  }
+
+  .pxc-card-sm {
+    @apply bg-white rounded-xl border p-4;
+    border-color: var(--color-pxc-border);
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+  }
+
+  .pxc-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm text-white
+           px-6 py-3 rounded-xl transition-all duration-150 cursor-pointer;
+    background-color: var(--color-pxc-blue);
+    &:hover { background-color: var(--color-pxc-blue-dark); }
+    &:focus-visible { @apply outline-2 outline-offset-2; outline-color: var(--color-pxc-blue); }
+    &:disabled { @apply opacity-50 cursor-not-allowed; }
+  }
+
+  .pxc-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm
+           px-6 py-3 rounded-xl border transition-all duration-150 cursor-pointer bg-white;
+    color: var(--color-pxc-navy);
+    border-color: var(--color-pxc-border);
+    &:hover { background-color: var(--color-pxc-slate); }
+    &:focus-visible { @apply outline-2 outline-offset-2; outline-color: var(--color-pxc-blue); }
+    &:disabled { @apply opacity-50 cursor-not-allowed; }
+  }
+
+  .pxc-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 font-medium text-sm
+           px-4 py-2 rounded-lg transition-all duration-150 cursor-pointer bg-transparent;
+    color: var(--color-pxc-muted);
+    &:hover { background-color: var(--color-pxc-slate); color: var(--color-pxc-navy); }
+  }
+
+  .pxc-label {
+    @apply block text-sm font-medium mb-1.5;
+    color: var(--color-pxc-navy);
+  }
+
+  .pxc-input {
+    @apply block w-full text-sm px-4 py-3 rounded-xl border transition-colors duration-150;
+    border-color: var(--color-pxc-border);
+    color: var(--color-pxc-navy);
+    background: #fff;
+    &::placeholder { color: var(--color-pxc-muted); }
+    &:focus {
+      @apply outline-none;
+      border-color: var(--color-pxc-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    &.error {
+      border-color: var(--color-pxc-error);
+      &:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+    }
+  }
+
+  .pxc-field-error {
+    @apply text-xs mt-1.5;
+    color: var(--color-pxc-error);
+  }
+
+  .pxc-alert {
+    @apply flex items-start gap-3 rounded-xl px-4 py-3 text-sm;
+    &.success {
+      background-color: var(--color-pxc-success-bg);
+      color: #15803d;
+    }
+    &.error {
+      background-color: var(--color-pxc-error-bg);
+      color: #b91c1c;
+    }
+    &.warning {
+      background-color: var(--color-pxc-warning-bg);
+      color: #92400e;
+    }
+  }
+
+  .pxc-badge { @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full; }
+
+  .pxc-badge-success {
+    @apply pxc-badge;
+    background-color: var(--color-pxc-success-bg);
+    color: #15803d;
+  }
+
+  .pxc-badge-error {
+    @apply pxc-badge;
+    background-color: var(--color-pxc-error-bg);
+    color: #b91c1c;
+  }
+
+  .pxc-badge-warning {
+    @apply pxc-badge;
+    background-color: var(--color-pxc-warning-bg);
+    color: #92400e;
+  }
+
+  .pxc-badge-neutral {
+    @apply pxc-badge;
+    background-color: #f1f5f9;
+    color: var(--color-pxc-muted);
+  }
+
+  .pxc-balance-display {
+    @apply text-4xl font-bold tracking-tight;
+    color: var(--color-pxc-navy);
+  }
+
+  .pxc-auth-page {
+    @apply min-h-screen flex flex-col items-center justify-center px-4 py-12;
+    background: linear-gradient(135deg, var(--color-pxc-navy) 0%, var(--color-pxc-navy-light) 100%);
+  }
+
+  .pxc-auth-card {
+    @apply bg-white w-full max-w-md rounded-2xl p-8;
+    box-shadow: 0 20px 60px -10px rgba(15, 23, 42, 0.4);
+  }
+
+  .pxc-topbar {
+    @apply sticky top-0 z-40 flex items-center justify-between px-6 py-4 border-b;
+    background-color: var(--color-pxc-navy);
+    border-color: var(--color-pxc-navy-light);
+  }
+
+  .pxc-page { @apply max-w-5xl mx-auto px-4 py-8; }
+
+  .pxc-divider {
+    @apply border-t my-6;
+    border-color: var(--color-pxc-border);
+  }
+
+  .pxc-link {
+    @apply font-medium underline-offset-2 transition-colors;
+    color: var(--color-pxc-blue);
+    &:hover { color: var(--color-pxc-blue-dark); }
+  }
+
+  .pxc-logo {
+    @apply text-xl font-bold tracking-tight;
+    color: white;
+    span { color: var(--color-pxc-blue); }
+  }
+
+  /* Authenticated nav links */
+  .nav-link {
+    @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-colors;
+    color: #94a3b8;
+    &:hover { color: white; background-color: rgba(255,255,255,0.08); }
+    &.nav-active { color: white; background-color: rgba(255,255,255,0.12); }
+  }
+
+  .nav-link-mobile {
+    @apply px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors;
+    color: #94a3b8;
+    &:hover { color: white; }
+    &.nav-active {
+      color: white;
+      border-bottom: 2px solid var(--color-pxc-blue);
+    }
+  }
+
+  /* Loading skeleton */
+  .pxc-skeleton {
+    @apply rounded-lg animate-pulse;
+    background-color: #e2e8f0;
+  }
+
+  /* Stat card (dashboard) */
+  .pxc-stat {
+    @apply flex flex-col gap-1;
+  }
+
+  .pxc-stat-label {
+    @apply text-xs font-medium uppercase tracking-wide;
+    color: var(--color-pxc-muted);
+  }
+
+  .pxc-stat-value {
+    @apply text-xl font-bold;
+    color: var(--color-pxc-navy);
+  }
+
+  /* Toggle switch */
+  .toggle-track {
+    @apply w-10 h-6 rounded-full transition-colors duration-200 cursor-pointer;
+    background-color: var(--color-pxc-border);
+  }
+
+  .toggle-thumb {
+    @apply absolute w-4 h-4 bg-white rounded-full top-1 left-1 transition-transform duration-200 shadow-sm;
+  }
+
+  /* Table rows */
+  .pxc-table-row {
+    @apply flex items-center gap-4 py-3 border-b cursor-pointer transition-colors;
+    border-color: var(--color-pxc-border);
+    &:last-child { @apply border-b-0; }
+    &:hover { background-color: var(--color-pxc-slate); }
+  }
+}

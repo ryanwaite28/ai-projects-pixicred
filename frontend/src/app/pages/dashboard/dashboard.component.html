@@ -1,0 +1,103 @@
+<app-navbar />
+
+<div class="pxc-page">
+
+  @if (loading()) {
+    <!-- Skeleton -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      @for (_ of [1,2,3]; track $index) {
+        <div class="pxc-card">
+          <div class="pxc-skeleton h-4 w-24 mb-3"></div>
+          <div class="pxc-skeleton h-8 w-32"></div>
+        </div>
+      }
+    </div>
+    <div class="pxc-card">
+      <div class="pxc-skeleton h-4 w-40 mb-4"></div>
+      @for (_ of [1,2,3,4,5]; track $index) {
+        <div class="pxc-skeleton h-10 mb-2 rounded-lg"></div>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <div class="pxc-alert error mb-6">
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  @if (account(); as acc) {
+    <!-- Balance hero -->
+    <div class="pxc-card mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6"
+         style="background: linear-gradient(135deg, var(--color-pxc-navy) 0%, var(--color-pxc-navy-light) 100%); border-color: transparent">
+      <div>
+        <p class="pxc-stat-label" style="color: #64748b">Current balance</p>
+        <p class="pxc-balance-display" style="color: white">
+          {{ acc.currentBalance | currency }}
+        </p>
+        <div class="flex items-center gap-2 mt-2">
+          @if (acc.satisfied) {
+            <span class="pxc-badge-success text-xs">Balance paid</span>
+          } @else {
+            <span class="pxc-badge-warning text-xs">Payment due {{ acc.paymentDueDate | date:'mediumDate' }}</span>
+          }
+          <span class="pxc-badge-neutral text-xs">{{ acc.status }}</span>
+        </div>
+      </div>
+      <div class="flex gap-6 md:gap-8 shrink-0">
+        <div class="pxc-stat">
+          <span class="pxc-stat-label" style="color: #64748b">Credit limit</span>
+          <span class="pxc-stat-value" style="color: white">{{ acc.creditLimit | currency }}</span>
+        </div>
+        <div class="pxc-stat">
+          <span class="pxc-stat-label" style="color: #64748b">Available</span>
+          <span class="pxc-stat-value" style="color: var(--color-pxc-success)">{{ acc.availableCredit | currency }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="flex gap-3 mb-6">
+      <a routerLink="/payments" class="pxc-btn-primary text-sm">Make a payment</a>
+      <a routerLink="/statements" class="pxc-btn-secondary text-sm">View statements</a>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="pxc-card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold" style="color: var(--color-pxc-navy)">Recent transactions</h2>
+        <a routerLink="/transactions" class="pxc-link text-xs">View all</a>
+      </div>
+
+      @if (recentTxns().length === 0) {
+        <p class="text-sm text-center py-6" style="color: var(--color-pxc-muted)">No transactions yet.</p>
+      } @else {
+        @for (txn of recentTxns(); track txn.transactionId) {
+          <div class="pxc-table-row">
+            <div class="shrink-0">
+              @if (txn.type === 'CHARGE') {
+                <span class="pxc-badge-neutral">Charge</span>
+              } @else {
+                <span class="pxc-badge-success">Payment</span>
+              }
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate" style="color: var(--color-pxc-navy)">
+                {{ txn.merchantName ?? '—' }}
+              </p>
+              <p class="text-xs" style="color: var(--color-pxc-muted)">{{ txn.createdAt | date:'mediumDate' }}</p>
+            </div>
+            <div class="shrink-0 text-sm font-semibold" [style.color]="txn.type === 'PAYMENT' ? 'var(--color-pxc-success)' : 'var(--color-pxc-navy)'">
+              {{ txn.type === 'PAYMENT' ? '-' : '' }}{{ txn.amount | currency }}
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+</div>

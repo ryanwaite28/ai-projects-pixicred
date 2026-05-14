@@ -233,7 +233,7 @@ chmod +x scripts/bootstrap.sh
 ## Project Identity
 
 - **Project**: PixiCred — serverless credit card lending platform with Angular SPA
-- **Stack**: TypeScript, Node.js 20, PostgreSQL, Prisma ORM, Handlebars, AWS Lambda, SQS, SNS, SES, EventBridge, Terraform (backend) + Angular 17+, Angular Material, S3 + CloudFront (frontend)
+- **Stack**: TypeScript, Node.js 20, PostgreSQL, Prisma ORM, Handlebars, AWS Lambda, SQS, SNS, SES, EventBridge, Terraform (backend) + Angular 17+, Tailwind CSS, S3 + CloudFront (frontend)
 - **AWS Account**: `408141212087` (shared portfolio account); `dev` and `prod` isolated by `pixicred-{env}-` name prefix and `Project=pixicred` tag
 - **Environments**: `dev` and `prod` only
 - **Local emulation**: MiniStack (not LocalStack)
@@ -261,7 +261,7 @@ Do not suggest alternatives to any of the following. The service layer boundary 
 - GitHub Actions with OIDC for CI/CD — role `pixicred-github-actions`; no IAM user keys, no long-lived credentials
 - AWS CLI profile `rmw-llc` for all local AWS operations — never `default`
 - **Angular 17+ (standalone components)** for the frontend SPA — not React, not Vue, not Next.js
-- **Angular Material** for frontend UI — no custom design system
+- **Tailwind CSS** for frontend styling — custom PixiCred fintech design theme; no component library
 - **JWT (HS256, 24h expiry)** for portal auth; `jsonwebtoken` + `bcrypt` (cost 12) in the backend service layer
 - **S3 + CloudFront** for frontend hosting — not Amplify, not Vercel; uses pre-provisioned ACM wildcard cert
 - **RDS IAM database authentication** for the service Lambda — `pixicred_app` PostgreSQL user with `rds_iam` grant; `@aws-sdk/rds-signer` generates a 15-minute token at cold start; no static DB password for the application
