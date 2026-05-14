@@ -169,11 +169,16 @@ jobs:
           SECRET=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-dev-secrets" \
             --query "SecretString" --output text)
-          DB_URL=$(echo "$SECRET" | jq -r '.DATABASE_URL // empty')
+          DB_POOLER=$(echo "$SECRET" | jq -r '.DATABASE_URL_POOLER // empty')
+          DB_DIRECT=$(echo "$SECRET" | jq -r '.DATABASE_URL_DIRECT // empty')
           JWT=$(echo "$SECRET" | jq -r '.JWT_SECRET // empty')
           FAIL=0
-          if [ -z "$DB_URL" ] || echo "$DB_URL" | grep -qi "placeholder"; then
-            echo "❌ DATABASE_URL is missing or placeholder in pixicred-dev-secrets"
+          if [ -z "$DB_POOLER" ] || echo "$DB_POOLER" | grep -qi "placeholder"; then
+            echo "❌ DATABASE_URL_POOLER is missing or placeholder in pixicred-dev-secrets"
+            FAIL=1
+          fi
+          if [ -z "$DB_DIRECT" ] || echo "$DB_DIRECT" | grep -qi "placeholder"; then
+            echo "❌ DATABASE_URL_DIRECT is missing or placeholder in pixicred-dev-secrets"
             FAIL=1
           fi
           if [ -z "$JWT" ] || echo "$JWT" | grep -qi "placeholder"; then
@@ -183,14 +188,14 @@ jobs:
           [ "$FAIL" -eq 0 ] && echo "✅ Secrets populated"
           exit "$FAIL"
 
-      - name: Check DATABASE_URL connectivity
+      - name: Check database connectivity (direct connection)
         run: |
           sudo apt-get install -y postgresql-client -q
-          psql "$DATABASE_URL" --no-psqlrc -c "SELECT 1" >/dev/null \
+          psql "$DATABASE_URL_DIRECT" --no-psqlrc -c "SELECT 1" >/dev/null \
             && echo "✅ Database reachable" \
             || (echo "❌ Cannot connect to Supabase database"; exit 1)
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
   # ── Sync DATABASE_URL + Run migrations on dev ─────────────────────────────
   migrate-dev:
@@ -215,23 +220,26 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync DATABASE_URL to Secrets Manager
+      - name: Sync DB URLs to Secrets Manager
         run: |
           CURRENT=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-dev-secrets" \
             --query "SecretString" --output text)
-          UPDATED=$(echo "$CURRENT" | jq --arg url "$DATABASE_URL" '. + {DATABASE_URL: $url}')
+          UPDATED=$(echo "$CURRENT" \
+            | jq --arg pooler "$DATABASE_URL_POOLER" --arg direct "$DATABASE_URL_DIRECT" \
+                 '. + {DATABASE_URL_POOLER: $pooler, DATABASE_URL_DIRECT: $direct}')
           aws secretsmanager put-secret-value \
             --secret-id "pixicred-dev-secrets" \
             --secret-string "$UPDATED"
-          echo "✅ DATABASE_URL synced to pixicred-dev-secrets"
+          echo "✅ DATABASE_URL_POOLER and DATABASE_URL_DIRECT synced to pixicred-dev-secrets"
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Sync migrations to S3 audit trail
         run: aws s3 sync prisma/migrations/ s3://pixicred-dev-migrations/
@@ -419,23 +427,26 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync DATABASE_URL to Secrets Manager
+      - name: Sync DB URLs to Secrets Manager
         run: |
           CURRENT=$(aws secretsmanager get-secret-value \
             --secret-id "pixicred-prod-secrets" \
             --query "SecretString" --output text)
-          UPDATED=$(echo "$CURRENT" | jq --arg url "$DATABASE_URL" '. + {DATABASE_URL: $url}')
+          UPDATED=$(echo "$CURRENT" \
+            | jq --arg pooler "$DATABASE_URL_POOLER" --arg direct "$DATABASE_URL_DIRECT" \
+                 '. + {DATABASE_URL_POOLER: $pooler, DATABASE_URL_DIRECT: $direct}')
           aws secretsmanager put-secret-value \
             --secret-id "pixicred-prod-secrets" \
             --secret-string "$UPDATED"
-          echo "✅ DATABASE_URL synced to pixicred-prod-secrets"
+          echo "✅ DATABASE_URL_POOLER and DATABASE_URL_DIRECT synced to pixicred-prod-secrets"
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Sync migrations to S3 audit trail
         run: aws s3 sync prisma/migrations/ s3://pixicred-prod-migrations/
