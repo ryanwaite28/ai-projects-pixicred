@@ -42,8 +42,10 @@ fi
 # ── Derived values ─────────────────────────────────────────────────────────────
 if [[ "$ENV" == "prod" ]]; then
   API_URL="https://api.pixicred.com"
+  FRONTEND_URL="https://pixicred.com"
 else
   API_URL="https://api.dev.pixicred.com"
+  FRONTEND_URL="https://dev.pixicred.com"
 fi
 
 # ── Banner ─────────────────────────────────────────────────────────────────────
@@ -206,27 +208,15 @@ fi
 # ── Frontend HTTP check ────────────────────────────────────────────────────────
 step "Frontend HTTP check"
 
-if [[ -n "$CF_ID" && "$CF_ID" != "null" ]]; then
-  CF_DOMAIN=$(aws_cmd cloudfront get-distribution \
-    --id "$CF_ID" \
-    --query 'Distribution.DomainName' --output text 2>/dev/null || echo "")
-
-  if [[ -n "$CF_DOMAIN" && "$CF_DOMAIN" != "None" ]]; then
-    FE_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-      --max-time 15 \
-      "https://${CF_DOMAIN}/" 2>/dev/null || echo "000")
-    if [[ "$FE_CODE" == "200" ]]; then
-      pass "Frontend https://${CF_DOMAIN}/ → 200 OK"
-    elif [[ "$FE_CODE" == "000" ]]; then
-      fail "Frontend https://${CF_DOMAIN}/ → connection failed"
-    else
-      fail "Frontend https://${CF_DOMAIN}/ → ${FE_CODE}"
-    fi
-  else
-    skip "Could not resolve CloudFront domain for distribution ${CF_ID}"
-  fi
+FE_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  --max-time 15 \
+  "${FRONTEND_URL}/" 2>/dev/null || echo "000")
+if [[ "$FE_CODE" == "200" ]]; then
+  pass "Frontend ${FRONTEND_URL}/ → 200 OK"
+elif [[ "$FE_CODE" == "000" ]]; then
+  fail "Frontend ${FRONTEND_URL}/ → connection failed (timeout or DNS)"
 else
-  skip "Skipping frontend check — CloudFront distribution not found above"
+  fail "Frontend ${FRONTEND_URL}/ → ${FE_CODE}"
 fi
 
 # ── Summary ────────────────────────────────────────────────────────────────────

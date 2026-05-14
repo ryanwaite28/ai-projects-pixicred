@@ -14,6 +14,12 @@ variable "create_apex_records" {
   default     = false
 }
 
+variable "cloudfront_subdomain" {
+  type        = string
+  description = "Subdomain to point at CloudFront for non-prod envs (e.g. 'dev.pixicred.com'). Leave empty for prod (apex records used instead)."
+  default     = ""
+}
+
 variable "cloudfront_domain_name" {
   type        = string
   description = "CloudFront distribution domain name"

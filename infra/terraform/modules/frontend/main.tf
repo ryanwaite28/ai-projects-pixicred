@@ -33,7 +33,7 @@ resource "aws_cloudfront_distribution" "this" {
   is_ipv6_enabled     = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
-  aliases             = var.env == "prod" ? ["pixicred.com", "www.pixicred.com"] : []
+  aliases             = var.env == "prod" ? ["pixicred.com", "www.pixicred.com"] : ["dev.pixicred.com"]
   tags                = var.tags
 
   origin {
@@ -78,10 +78,10 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = var.env != "prod"
-    acm_certificate_arn            = var.env == "prod" ? var.acm_certificate_arn : null
-    ssl_support_method             = var.env == "prod" ? "sni-only" : null
-    minimum_protocol_version       = var.env == "prod" ? "TLSv1.2_2021" : null
+    cloudfront_default_certificate = false
+    acm_certificate_arn            = var.acm_certificate_arn
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 }
 

@@ -33,6 +33,19 @@ resource "aws_route53_record" "www" {
   }
 }
 
+resource "aws_route53_record" "cloudfront_subdomain" {
+  count   = var.cloudfront_subdomain != "" ? 1 : 0
+  zone_id = var.hosted_zone_id
+  name    = var.cloudfront_subdomain
+  type    = "A"
+
+  alias {
+    name                   = var.cloudfront_domain_name
+    zone_id                = var.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
 resource "aws_route53_record" "api" {
   zone_id = var.hosted_zone_id
   name    = var.api_subdomain

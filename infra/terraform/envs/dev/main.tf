@@ -603,6 +603,7 @@ module "dns" {
   source                     = "../../modules/dns"
   hosted_zone_id             = local.hosted_zone_id
   api_subdomain              = "api.dev.pixicred.com"
+  cloudfront_subdomain       = "dev.pixicred.com"
   create_apex_records        = false
   cloudfront_domain_name     = module.frontend.cloudfront_domain_name
   cloudfront_hosted_zone_id  = module.frontend.cloudfront_hosted_zone_id
