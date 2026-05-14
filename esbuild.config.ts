@@ -19,6 +19,7 @@ const lambdaEntries: Array<[string, string]> = [
   ['api-notifications', 'src/handlers/api/notifications.handler.ts'],
   ['api-auth',          'src/handlers/api/auth.handler.ts'],
   ['api-admin',         'src/handlers/api/admin.handler.ts'],
+  ['api-health',        'src/handlers/api/health.handler.ts'],
   ['service',           'src/handlers/service/service.handler.ts'],
   ['credit-check',      'src/handlers/sqs/credit-check.handler.ts'],
   ['notification',      'src/handlers/sqs/notification.handler.ts'],

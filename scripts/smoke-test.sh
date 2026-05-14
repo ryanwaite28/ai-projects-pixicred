@@ -67,6 +67,7 @@ LAMBDA_NAMES=(
   "pixicred-${ENV}-api-notifications"
   "pixicred-${ENV}-api-auth"
   "pixicred-${ENV}-api-admin"
+  "pixicred-${ENV}-api-health"
   "pixicred-${ENV}-credit-check"
   "pixicred-${ENV}-notification"
   "pixicred-${ENV}-statement-gen"
@@ -190,19 +191,16 @@ fi
 # ── API HTTP check ─────────────────────────────────────────────────────────────
 step "API HTTP check"
 
-# 2xx = healthy; 4xx = API alive but no /health route (acceptable); 5xx or 000 = fail
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   --max-time 15 \
   "${API_URL}/health" 2>/dev/null || echo "000")
 
 if [[ "$HTTP_CODE" == "200" ]]; then
   pass "API ${API_URL}/health → 200 OK"
-elif [[ "$HTTP_CODE" =~ ^4 ]]; then
-  pass "API ${API_URL}/health → ${HTTP_CODE} (API responding)"
 elif [[ "$HTTP_CODE" == "000" ]]; then
   fail "API ${API_URL}/health → connection failed (timeout or DNS)"
 else
-  fail "API ${API_URL}/health → ${HTTP_CODE} (server error)"
+  fail "API ${API_URL}/health → ${HTTP_CODE} (expected 200)"
 fi
 
 # ── Frontend HTTP check ────────────────────────────────────────────────────────

@@ -340,6 +340,18 @@ module "api_admin" {
   })
 }
 
+module "api_health" {
+  source        = "../../modules/lambda"
+  function_name = "pixicred-${local.env}-api-health"
+  memory_size   = 128
+  timeout       = 5
+  s3_bucket     = aws_s3_bucket.lambda_packages.bucket
+  s3_key        = "api-health/index.zip"
+  policy_json   = jsonencode({ Version = "2012-10-17", Statement = [] })
+  environment   = {}
+  tags          = local.tags
+}
+
 module "lambda_credit_check" {
   source        = "../../modules/lambda"
   function_name = "pixicred-${local.env}-credit-check"
@@ -561,6 +573,13 @@ module "api_gateway" {
       invoke_arn = module.api_admin.invoke_arn
       routes = [
         { method = "POST", path = "/admin/billing-lifecycle" },
+      ]
+    }
+    health = {
+      lambda_arn = module.api_health.function_arn
+      invoke_arn = module.api_health.invoke_arn
+      routes = [
+        { method = "GET", path = "/health" },
       ]
     }
   }
