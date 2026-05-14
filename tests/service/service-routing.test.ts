@@ -12,21 +12,7 @@ async function expectNotImplemented(action: ServiceAction): Promise<void> {
 
 // Minimal stub payloads — stubs throw immediately so shapes don't matter
 describe('service dispatch — stub routing', () => {
-  // submitApplication, getApplication, runCreditCheck implemented in Phase 2
-  // getAccount, closeAccount implemented in Phase 3a
-  // postCharge, getTransactions implemented in Phase 3b
-  // postPayment implemented in Phase 4
-  // generateStatement, generateAllStatements, getStatements, getStatement implemented in Phase 5
-  // runBillingLifecycle implemented in Phase 4.5
-  // getNotificationPreferences, updateNotificationPreferences, sendDeclineEmail, sendApprovalEmail,
-  // sendTransactionEmail, sendStatementEmail, sendPaymentDueReminderEmail, sendAutoCloseEmail,
-  // sendUserCloseEmail implemented in Phase 6
-
-  it('throws NOT_IMPLEMENTED for registerPortalAccount', () =>
-    expectNotImplemented({ action: 'registerPortalAccount', payload: { email: 'a@b.com', accountId: 'x', password: 'pw' } }));
-
-  it('throws NOT_IMPLEMENTED for loginPortalAccount', () =>
-    expectNotImplemented({ action: 'loginPortalAccount', payload: { email: 'a@b.com', password: 'pw' } }));
+  // All actions through Phase 9 are implemented; no remaining NOT_IMPLEMENTED stubs.
 });
 
 describe('service handler — error wrapping', () => {

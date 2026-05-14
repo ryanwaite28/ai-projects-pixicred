@@ -12,6 +12,8 @@ export async function setup(): Promise<void> {
 
   const url = container.getConnectionUri();
   process.env['TEST_DATABASE_URL'] = url;
+  process.env['ENVIRONMENT'] = 'local';
+  process.env['DATABASE_URL'] = url;
 
   execSync('npx prisma migrate deploy', {
     env: { ...process.env, DATABASE_URL: url },

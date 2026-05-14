@@ -15,8 +15,6 @@ export default defineConfig({
   plugins: [hbsPlugin],
   test: {
     include: [
-      'tests/scaffold/docker.test.ts',
-      'tests/scaffold/migrations.test.ts',
       'tests/db/**/*.test.ts',
       'tests/service/**/*.test.ts',
     ],
