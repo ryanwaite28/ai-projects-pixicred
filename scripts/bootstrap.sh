@@ -688,13 +688,31 @@ fi
 # JWT_SECRET is generated once at bootstrap and never overwritten.
 step "Secrets Manager secrets"
 
+# Percent-encode the password component of a postgresql:// URL so that special
+# characters (#, @, $, {, }, ;, etc.) don't confuse Node.js/Prisma's strict
+# RFC 3986 URL parser.  Uses rfind('@') so passwords containing '@' are handled.
+encode_db_url() {
+  local url="$1"
+  [[ -z "$url" ]] && echo "" && return
+  python3 - "$url" << 'PYEOF'
+import sys, urllib.parse
+raw = sys.argv[1]
+scheme, rest = raw.split('://', 1)
+last_at = rest.rfind('@')
+credentials, host_part = rest[:last_at], rest[last_at+1:]
+colon = credentials.index(':')
+user, password = credentials[:colon], credentials[colon+1:]
+print(f"{scheme}://{user}:{urllib.parse.quote(password, safe='')}@{host_part}")
+PYEOF
+}
+
 # Load DATABASE_URL values from .env.secrets — reads literals, never sourced,
 # so special characters ($, {, }, etc.) in passwords are captured safely.
 DEV_DATABASE_URL=""
 PROD_DATABASE_URL=""
 if [ -f .env.secrets ]; then
-  DEV_DATABASE_URL=$(grep -E '^DEV_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2- | sed "s/^['\"]//;s/['\"]$//")
-  PROD_DATABASE_URL=$(grep -E '^PROD_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2- | sed "s/^['\"]//;s/['\"]$//")
+  DEV_DATABASE_URL=$(grep -E '^DEV_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2-)
+  PROD_DATABASE_URL=$(grep -E '^PROD_DATABASE_URL=' .env.secrets | head -1 | cut -d'=' -f2-)
   [ -n "$DEV_DATABASE_URL" ]  && info "Loaded DEV_DATABASE_URL from .env.secrets"
   [ -n "$PROD_DATABASE_URL" ] && info "Loaded PROD_DATABASE_URL from .env.secrets"
   [ -z "$DEV_DATABASE_URL" ]  && warn ".env.secrets: DEV_DATABASE_URL is empty"
@@ -704,15 +722,29 @@ else
   warn "Create .env.secrets from .env.secrets.example before running bootstrap.sh"
 fi
 
+# URL-encode the password so Node.js/Prisma can parse the URL correctly.
+# The raw URL (with unencoded special chars) is safe for psql but breaks Prisma.
+ENCODED_DEV_URL=$(encode_db_url "$DEV_DATABASE_URL")
+ENCODED_PROD_URL=$(encode_db_url "$PROD_DATABASE_URL")
+
+if [ -n "$ENCODED_DEV_URL" ]; then
+  info "Encoded dev DATABASE_URL (use this value in GitHub dev environment secret):"
+  info "  $ENCODED_DEV_URL"
+fi
+if [ -n "$ENCODED_PROD_URL" ]; then
+  info "Encoded prod DATABASE_URL (use this value in GitHub prod environment secret):"
+  info "  $ENCODED_PROD_URL"
+fi
+
 GENERATED_JWT=$(openssl rand -hex 32)
 
 for ENV in "${ENVS[@]}"; do
   SECRET_NAME="pixicred-${ENV}-secrets"
 
   if [ "$ENV" = "dev" ]; then
-    DB_URL="$DEV_DATABASE_URL"
+    DB_URL="$ENCODED_DEV_URL"
   else
-    DB_URL="$PROD_DATABASE_URL"
+    DB_URL="$ENCODED_PROD_URL"
   fi
 
   if aws_cmd secretsmanager describe-secret \
