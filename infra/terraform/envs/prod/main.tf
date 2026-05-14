@@ -1,6 +1,5 @@
 provider "aws" {
-  region  = "us-east-1"
-  profile = "rmw-llc"
+  region = "us-east-1"
 }
 
 data "aws_caller_identity" "current" {}

@@ -4,6 +4,5 @@ terraform {
     key            = "pixicred/dev/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "pixicred-dev-tf-locks"
-    profile        = "rmw-llc"
   }
 }
