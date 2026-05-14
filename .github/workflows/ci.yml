@@ -188,14 +188,14 @@ jobs:
           [ "$FAIL" -eq 0 ] && echo "✅ Secrets populated"
           exit "$FAIL"
 
-      - name: Check database connectivity (direct connection)
+      - name: Check database connectivity (pooler, IPv4)
         run: |
           sudo apt-get install -y postgresql-client -q
-          psql "$DATABASE_URL_DIRECT" --no-psqlrc -c "SELECT 1" >/dev/null \
+          psql "$DATABASE_URL_POOLER" --no-psqlrc -c "SELECT 1" >/dev/null \
             && echo "✅ Database reachable" \
             || (echo "❌ Cannot connect to Supabase database"; exit 1)
         env:
-          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
 
   # ── Sync DATABASE_URL + Run migrations on dev ─────────────────────────────
   migrate-dev:
@@ -237,9 +237,14 @@ jobs:
           DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Run migrations
-        run: npx prisma migrate deploy
+        run: |
+          # Supabase direct URL is IPv6-only; GitHub Actions runners are IPv4.
+          # Session-mode pooler (port 5432, same host as transaction-mode pooler) is
+          # IPv4 and supports advisory locks that prisma migrate requires.
+          SESSION_URL=$(echo "$DATABASE_URL_POOLER" | sed 's|:6543/|:5432/|')
+          DATABASE_URL="$SESSION_URL" npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
 
       - name: Sync migrations to S3 audit trail
         run: aws s3 sync prisma/migrations/ s3://pixicred-dev-migrations/
@@ -444,9 +449,11 @@ jobs:
           DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Run migrations
-        run: npx prisma migrate deploy
+        run: |
+          SESSION_URL=$(echo "$DATABASE_URL_POOLER" | sed 's|:6543/|:5432/|')
+          DATABASE_URL="$SESSION_URL" npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
 
       - name: Sync migrations to S3 audit trail
         run: aws s3 sync prisma/migrations/ s3://pixicred-prod-migrations/

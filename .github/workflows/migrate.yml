@@ -58,9 +58,14 @@ jobs:
           DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
 
       - name: Run migrations
-        run: npx prisma migrate deploy
+        run: |
+          # Supabase direct URL is IPv6-only; GitHub Actions runners are IPv4.
+          # Session-mode pooler (port 5432, same host as transaction-mode pooler) is
+          # IPv4 and supports advisory locks that prisma migrate requires.
+          SESSION_URL=$(echo "$DATABASE_URL_POOLER" | sed 's|:6543/|:5432/|')
+          DATABASE_URL="$SESSION_URL" npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+          DATABASE_URL_POOLER: ${{ secrets.DATABASE_URL_POOLER }}
 
       - name: Sync migrations to S3 audit trail
         run: |
