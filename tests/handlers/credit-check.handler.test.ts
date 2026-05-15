@@ -12,7 +12,11 @@ function makeRecord(applicationId: string): SQSRecord {
   return {
     messageId: 'msg-1',
     receiptHandle: 'handle',
-    body: JSON.stringify({ applicationId }),
+    body: JSON.stringify({
+      Type: 'Notification',
+      TopicArn: 'arn:aws:sns:us-east-1:000000000000:topic',
+      Message: JSON.stringify({ eventType: 'APPLICATION_SUBMITTED', payload: { applicationId } }),
+    }),
     attributes: {} as SQSRecord['attributes'],
     messageAttributes: {},
     md5OfBody: '',
@@ -56,8 +60,11 @@ describe('credit-check handler', () => {
 
   it('throws when applicationId is missing from SQS record body', async () => {
     const badRecord = makeRecord('');
-    // Override body to have no applicationId
-    badRecord.body = JSON.stringify({});
+    badRecord.body = JSON.stringify({
+      Type: 'Notification',
+      TopicArn: 'arn:aws:sns:us-east-1:000000000000:topic',
+      Message: JSON.stringify({ eventType: 'APPLICATION_SUBMITTED', payload: {} }),
+    });
     await expect(handler(makeEvent([badRecord]))).rejects.toThrow();
   });
 });
