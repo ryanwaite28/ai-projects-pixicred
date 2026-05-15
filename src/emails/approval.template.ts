@@ -7,13 +7,14 @@ export type { SendEmailInput };
 
 const approvalTemplate = Handlebars.compile(approvalTemplateSource);
 
-export function buildApprovalEmail(application: Application, account: Account): SendEmailInput {
+export function buildApprovalEmail(application: Application, account: Account, baseUrl: string): SendEmailInput {
   const htmlBody = approvalTemplate({
     firstName: application.firstName,
     lastName: application.lastName,
     creditLimit: account.creditLimit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     paymentDueDate: account.paymentDueDate,
     accountId: account.accountId,
+    baseUrl,
   });
 
   return {
@@ -31,7 +32,7 @@ export function buildApprovalEmail(application: Application, account: Account): 
       '',
       `Account Setup Code: ${account.accountId}`,
       '',
-      'To create your portal password, visit https://pixicred.com/setup and enter your Account Setup Code.',
+      `To create your portal password, visit ${baseUrl}/setup and enter your Account Setup Code.`,
       '',
       'Welcome to PixiCred!',
       'The PixiCred Team',

@@ -5,10 +5,11 @@ import type { SendEmailInput } from './decline.template.js';
 
 const applicationSubmittedTemplate = Handlebars.compile(applicationSubmittedTemplateSource);
 
-export function buildApplicationSubmittedEmail(application: Application): SendEmailInput {
+export function buildApplicationSubmittedEmail(application: Application, baseUrl: string): SendEmailInput {
   const htmlBody = applicationSubmittedTemplate({
     firstName: application.firstName,
     applicationId: application.applicationId,
+    baseUrl,
   });
 
   return {
@@ -22,7 +23,7 @@ export function buildApplicationSubmittedEmail(application: Application): SendEm
       '',
       `Confirmation Code: ${application.applicationId}`,
       '',
-      'Save your confirmation code — you can use it to check your application status at https://pixicred.com/apply/status',
+      `Save your confirmation code — you can use it to check your application status at ${baseUrl}/apply/status`,
       '',
       'Sincerely,',
       'The PixiCred Team',

@@ -7,7 +7,7 @@ export type { SendEmailInput };
 
 const transactionTemplate = Handlebars.compile(transactionTemplateSource);
 
-export function buildTransactionEmail(transaction: Transaction, account: Account): SendEmailInput {
+export function buildTransactionEmail(transaction: Transaction, account: Account, baseUrl: string): SendEmailInput {
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const htmlBody = transactionTemplate({
@@ -16,6 +16,7 @@ export function buildTransactionEmail(transaction: Transaction, account: Account
     amount: fmt(transaction.amount),
     newBalance: fmt(account.currentBalance),
     availableCredit: fmt(account.availableCredit),
+    baseUrl,
   });
 
   return {
@@ -32,7 +33,7 @@ export function buildTransactionEmail(transaction: Transaction, account: Account
       `New Balance:      $${fmt(account.currentBalance)}`,
       `Available Credit: $${fmt(account.availableCredit)}`,
       '',
-      'If you did not authorize this transaction, please contact us at https://pixicred.com/support.',
+      `If you did not authorize this transaction, please contact us at ${baseUrl}/support.`,
       '',
       'The PixiCred Team',
     ].join('\n'),

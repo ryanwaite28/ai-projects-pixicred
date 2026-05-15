@@ -40,50 +40,50 @@ afterEach(() => {
 
 describe('buildApprovalEmail', () => {
   it('sets to field to applicant email', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     expect(email.to).toBe('jane@example.com');
   });
 
   it('subject indicates approval', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     const subjectLower = email.subject.toLowerCase();
     expect(subjectLower).toMatch(/approv/);
   });
 
   it('body includes credit limit', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/7[,.]?500/);
   });
 
   it('body labels accountId as Account Setup Code', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body.toLowerCase()).toContain('account setup code');
     expect(body).toContain(account.accountId);
   });
 
   it('body includes link or reference to pixicred.com/setup', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toContain('pixicred.com/setup');
   });
 
   it('body includes opening balance of 500', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/500/);
   });
 
   it('body includes payment due date from account.paymentDueDate', () => {
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toContain('2026-06-25');
   });
 
   it('uses SES_FROM_EMAIL env var as sender when set', () => {
     process.env['SES_FROM_EMAIL'] = 'custom@pixicred.com';
-    const email = buildApprovalEmail(app, account);
+    const email = buildApprovalEmail(app, account, 'https://pixicred.com');
     expect(email.to).toBeTruthy();
     expect(email.subject).toBeTruthy();
     expect(email.htmlBody).toBeTruthy();

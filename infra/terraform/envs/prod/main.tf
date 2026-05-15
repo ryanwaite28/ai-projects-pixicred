@@ -264,6 +264,7 @@ module "service_lambda" {
     STATEMENT_GEN_QUEUE_URL     = module.sqs_statement_gen.queue_url
     BILLING_LIFECYCLE_QUEUE_URL = module.sqs_billing_lifecycle.queue_url
     SES_FROM_ADDRESS            = "no-reply@pixicred.com"
+    PORTAL_BASE_URL             = "https://pixicred.com"
   }
 }
 

@@ -18,6 +18,7 @@ const clients = {
   sesClient: { sendEmail: vi.fn().mockResolvedValue(undefined) },
   snsClient: { publishEvent: mockSnsPublish },
   sqsClient: { sendMessage: vi.fn().mockResolvedValue(undefined) },
+  portalBaseUrl: 'https://pixicred.com',
 };
 
 beforeEach(() => {

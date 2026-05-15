@@ -7,7 +7,7 @@ export type { SendEmailInput };
 
 const statementTemplate = Handlebars.compile(statementTemplateSource);
 
-export function buildStatementEmail(statement: Statement, account: Account): SendEmailInput {
+export function buildStatementEmail(statement: Statement, account: Account, baseUrl: string): SendEmailInput {
   const fmt = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -23,6 +23,7 @@ export function buildStatementEmail(statement: Statement, account: Account): Sen
     closingBalance: fmt(statement.closingBalance),
     minimumPaymentDue: fmt(statement.minimumPaymentDue),
     dueDate: statement.dueDate,
+    baseUrl,
   });
 
   return {
@@ -41,7 +42,7 @@ export function buildStatementEmail(statement: Statement, account: Account): Sen
       `Minimum Payment Due:  $${fmt(statement.minimumPaymentDue)}`,
       `Payment Due Date:     ${statement.dueDate}`,
       '',
-      'Log in at https://pixicred.com/dashboard to view the full statement.',
+      `Log in at ${baseUrl}/dashboard to view the full statement.`,
       '',
       'The PixiCred Team',
     ].join('\n'),

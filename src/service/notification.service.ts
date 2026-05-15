@@ -87,7 +87,7 @@ export async function sendApprovalEmail(
     log('warn', 'sendApprovalEmail', 0, { note: 'account not found for application', applicationId: input.applicationId });
     return;
   }
-  const email = buildApprovalEmail(application, account);
+  const email = buildApprovalEmail(application, account, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -116,7 +116,7 @@ export async function sendTransactionEmail(
     log('info', 'sendTransactionEmail', 0, { note: 'suppressed by preference', accountId: account.accountId });
     return;
   }
-  const email = buildTransactionEmail(transaction, account);
+  const email = buildTransactionEmail(transaction, account, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -145,7 +145,7 @@ export async function sendStatementEmail(
     log('info', 'sendStatementEmail', 0, { note: 'suppressed by preference', accountId: account.accountId });
     return;
   }
-  const email = buildStatementEmail(statement, account);
+  const email = buildStatementEmail(statement, account, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -174,7 +174,7 @@ export async function sendPaymentDueReminderEmail(
     log('info', 'sendPaymentDueReminderEmail', 0, { note: 'suppressed by preference', accountId: input.accountId });
     return;
   }
-  const email = buildPaymentDueReminderEmail(account, schedule);
+  const email = buildPaymentDueReminderEmail(account, schedule, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -193,7 +193,7 @@ export async function sendAutoCloseEmail(
     log('warn', 'sendAutoCloseEmail', 0, { note: 'account not found', accountId: input.accountId });
     return;
   }
-  const email = buildAutoCloseEmail(account);
+  const email = buildAutoCloseEmail(account, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -212,7 +212,7 @@ export async function sendUserCloseEmail(
     log('warn', 'sendUserCloseEmail', 0, { note: 'account not found', accountId: input.accountId });
     return;
   }
-  const email = buildUserCloseEmail(account);
+  const email = buildUserCloseEmail(account, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -231,7 +231,7 @@ export async function sendApplicationSubmittedEmail(
     log('warn', 'sendApplicationSubmittedEmail', 0, { note: 'application not found', applicationId: input.applicationId });
     return;
   }
-  const email = buildApplicationSubmittedEmail(application);
+  const email = buildApplicationSubmittedEmail(application, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {

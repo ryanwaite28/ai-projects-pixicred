@@ -35,6 +35,7 @@ const clients: ServiceClients = {
   sesClient: createSesClient(process.env['SES_FROM_ADDRESS'] ?? ''),
   snsClient: createSnsClient(),
   sqsClient: createSqsClient(),
+  portalBaseUrl: process.env['PORTAL_BASE_URL'] ?? 'https://pixicred.com',
 };
 
 export async function dispatch(event: ServiceAction): Promise<unknown> {

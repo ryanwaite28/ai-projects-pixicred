@@ -7,7 +7,7 @@ export type { SendEmailInput };
 
 const userCloseTemplate = Handlebars.compile(userCloseTemplateSource);
 
-export function buildUserCloseEmail(account: Account): SendEmailInput {
+export function buildUserCloseEmail(account: Account, baseUrl: string): SendEmailInput {
   const closedAtFormatted = account.closedAt
     ? account.closedAt.toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
     : 'recently';
@@ -15,6 +15,7 @@ export function buildUserCloseEmail(account: Account): SendEmailInput {
   const htmlBody = userCloseTemplate({
     accountId: account.accountId,
     closedAt: closedAtFormatted,
+    baseUrl,
   });
 
   return {
@@ -28,7 +29,7 @@ export function buildUserCloseEmail(account: Account): SendEmailInput {
       `The closure took effect on ${closedAtFormatted}.`,
       '',
       'If you wish to open a new PixiCred account in the future, you are welcome to reapply at any time.',
-      'Visit https://pixicred.com/apply to submit a new application.',
+      `Visit ${baseUrl}/apply to submit a new application.`,
       '',
       'Thank you for being a PixiCred customer.',
       'The PixiCred Team',

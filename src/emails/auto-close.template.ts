@@ -7,13 +7,14 @@ export type { SendEmailInput };
 
 const autoCloseTemplate = Handlebars.compile(autoCloseTemplateSource);
 
-export function buildAutoCloseEmail(account: Account): SendEmailInput {
+export function buildAutoCloseEmail(account: Account, baseUrl: string): SendEmailInput {
   const fmt = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const htmlBody = autoCloseTemplate({
     accountId: account.accountId,
     currentBalance: fmt(account.currentBalance),
+    baseUrl,
   });
 
   return {
@@ -28,9 +29,9 @@ export function buildAutoCloseEmail(account: Account): SendEmailInput {
       `Outstanding Balance: $${fmt(account.currentBalance)}`,
       'Closure Reason:      Non-payment (balance unpaid 14+ days past due date)',
       '',
-      'If you would like to open a new account in the future, you may reapply at https://pixicred.com/apply.',
+      `If you would like to open a new account in the future, you may reapply at ${baseUrl}/apply.`,
       '',
-      'If you have questions, please contact us at https://pixicred.com/support.',
+      `If you have questions, please contact us at ${baseUrl}/support.`,
       '',
       'The PixiCred Team',
     ].join('\n'),

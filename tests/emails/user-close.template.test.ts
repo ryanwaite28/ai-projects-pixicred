@@ -26,23 +26,23 @@ afterEach(() => {
 
 describe('buildUserCloseEmail', () => {
   it('sets to field to account holderEmail', () => {
-    const email = buildUserCloseEmail(account);
+    const email = buildUserCloseEmail(account, 'https://pixicred.com');
     expect(email.to).toBe('jane@example.com');
   });
 
   it('subject confirms account closure', () => {
-    const email = buildUserCloseEmail(account);
+    const email = buildUserCloseEmail(account, 'https://pixicred.com');
     expect(email.subject.toLowerCase()).toMatch(/clos/);
   });
 
   it('body confirms closure was at holder request', () => {
-    const email = buildUserCloseEmail(account);
+    const email = buildUserCloseEmail(account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body.toLowerCase()).toMatch(/at your request|holder.*request|request/);
   });
 
   it('body includes instructions to reapply', () => {
-    const email = buildUserCloseEmail(account);
+    const email = buildUserCloseEmail(account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body.toLowerCase()).toMatch(/reappl|apply/);
     expect(body).toContain('pixicred.com/apply');
@@ -50,7 +50,7 @@ describe('buildUserCloseEmail', () => {
 
   it('uses SES_FROM_EMAIL env var as sender when set', () => {
     process.env['SES_FROM_EMAIL'] = 'custom@pixicred.com';
-    const email = buildUserCloseEmail(account);
+    const email = buildUserCloseEmail(account, 'https://pixicred.com');
     expect(email.to).toBeTruthy();
     expect(email.subject).toBeTruthy();
     expect(email.htmlBody).toBeTruthy();

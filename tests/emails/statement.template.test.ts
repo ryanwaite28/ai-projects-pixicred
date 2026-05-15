@@ -41,37 +41,37 @@ afterEach(() => {
 
 describe('buildStatementEmail', () => {
   it('sets to field to account holderEmail', () => {
-    const email = buildStatementEmail(statement, account);
+    const email = buildStatementEmail(statement, account, 'https://pixicred.com');
     expect(email.to).toBe('jane@example.com');
   });
 
   it('subject references statement period', () => {
-    const email = buildStatementEmail(statement, account);
+    const email = buildStatementEmail(statement, account, 'https://pixicred.com');
     expect(email.subject).toContain('2026-05-01');
     expect(email.subject).toContain('2026-06-01');
   });
 
   it('body includes closing balance', () => {
-    const email = buildStatementEmail(statement, account);
+    const email = buildStatementEmail(statement, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/650/);
   });
 
   it('body includes minimum payment due', () => {
-    const email = buildStatementEmail(statement, account);
+    const email = buildStatementEmail(statement, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/25/);
   });
 
   it('body includes due date', () => {
-    const email = buildStatementEmail(statement, account);
+    const email = buildStatementEmail(statement, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toContain('2026-06-22');
   });
 
   it('uses SES_FROM_EMAIL env var as sender when set', () => {
     process.env['SES_FROM_EMAIL'] = 'custom@pixicred.com';
-    const email = buildStatementEmail(statement, account);
+    const email = buildStatementEmail(statement, account, 'https://pixicred.com');
     expect(email.to).toBeTruthy();
     expect(email.subject).toBeTruthy();
     expect(email.htmlBody).toBeTruthy();

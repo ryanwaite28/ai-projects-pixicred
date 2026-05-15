@@ -15,6 +15,7 @@ const clients = {
   sesClient: { sendEmail: vi.fn().mockResolvedValue(undefined) },
   snsClient: { publishEvent: vi.fn().mockResolvedValue(undefined) },
   sqsClient: { sendMessage: vi.fn().mockResolvedValue(undefined) },
+  portalBaseUrl: 'https://pixicred.com',
 };
 
 const JWT_SECRET = 'test-jwt-secret';

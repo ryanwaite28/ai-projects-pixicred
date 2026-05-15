@@ -91,6 +91,7 @@ export interface ServiceClients {
   sesClient: SesClient;
   snsClient: SnsClient;
   sqsClient: SqsClient;
+  portalBaseUrl: string;
 }
 
 // ─── Service action payload types ────────────────────────────────────────────

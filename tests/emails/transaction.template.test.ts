@@ -36,36 +36,36 @@ afterEach(() => {
 
 describe('buildTransactionEmail', () => {
   it('sets to field to account holderEmail', () => {
-    const email = buildTransactionEmail(transaction, account);
+    const email = buildTransactionEmail(transaction, account, 'https://pixicred.com');
     expect(email.to).toBe('jane@example.com');
   });
 
   it('subject includes merchant name', () => {
-    const email = buildTransactionEmail(transaction, account);
+    const email = buildTransactionEmail(transaction, account, 'https://pixicred.com');
     expect(email.subject).toContain('Amazon');
   });
 
   it('body includes transaction amount', () => {
-    const email = buildTransactionEmail(transaction, account);
+    const email = buildTransactionEmail(transaction, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/100/);
   });
 
   it('body includes new account balance', () => {
-    const email = buildTransactionEmail(transaction, account);
+    const email = buildTransactionEmail(transaction, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/600/);
   });
 
   it('body includes available credit after charge', () => {
-    const email = buildTransactionEmail(transaction, account);
+    const email = buildTransactionEmail(transaction, account, 'https://pixicred.com');
     const body = email.htmlBody + email.textBody;
     expect(body).toMatch(/6[,.]?900/);
   });
 
   it('uses SES_FROM_EMAIL env var as sender when set', () => {
     process.env['SES_FROM_EMAIL'] = 'custom@pixicred.com';
-    const email = buildTransactionEmail(transaction, account);
+    const email = buildTransactionEmail(transaction, account, 'https://pixicred.com');
     expect(email.to).toBeTruthy();
     expect(email.subject).toBeTruthy();
     expect(email.htmlBody).toBeTruthy();

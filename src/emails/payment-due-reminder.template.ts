@@ -11,6 +11,7 @@ const reminderTemplate = Handlebars.compile(reminderTemplateSource);
 export function buildPaymentDueReminderEmail(
   account: Account,
   schedule: PaymentDueSchedule,
+  baseUrl: string,
 ): SendEmailInput {
   const fmt = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -22,6 +23,7 @@ export function buildPaymentDueReminderEmail(
     currentBalance: fmt(account.currentBalance),
     minimumPayment: fmt(minimumPayment),
     paymentDueDate: schedule.paymentDueDate,
+    baseUrl,
   });
 
   return {
@@ -39,7 +41,7 @@ export function buildPaymentDueReminderEmail(
       '',
       'WARNING: If your balance remains unpaid 14 days after the due date, your account will be automatically closed.',
       '',
-      'Log in at https://pixicred.com/dashboard to make a payment.',
+      `Log in at ${baseUrl}/dashboard to make a payment.`,
       '',
       'The PixiCred Team',
     ].join('\n'),
