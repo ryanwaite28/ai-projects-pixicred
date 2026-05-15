@@ -38,9 +38,6 @@ const clients: ServiceClients = {
 };
 
 export async function dispatch(event: ServiceAction): Promise<unknown> {
-  console.log(event);
-  console.log(JSON.stringify(event));
-  
   const prisma = await getPrisma();
   switch (event.action) {
     case 'submitApplication':
@@ -97,6 +94,7 @@ export async function dispatch(event: ServiceAction): Promise<unknown> {
 }
 
 export const handler = async (event: ServiceAction): Promise<unknown> => {
+  log('info', 'new event', -1, { event, _raw: event ? JSON.stringify(event) : null });
   const start = Date.now();
   try {
     const result = await dispatch(event);

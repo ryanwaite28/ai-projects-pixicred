@@ -16,9 +16,8 @@ interface SnsMessage {
 }
 
 export const handler = async (event: SQSEvent): Promise<void> => {
-  console.log(event);
-  console.log(JSON.stringify(event));
-  
+  log('info', 'new event', -1, { event, _raw: event ? JSON.stringify(event) : null });
+
   for (const record of event.Records) {
     const envelope = JSON.parse(record.body) as SnsEnvelope;
     const message = JSON.parse(envelope.Message) as SnsMessage;
