@@ -243,13 +243,13 @@ module "service_lambda" {
   tags          = local.tags
 
   environment = {
-    ENVIRONMENT          = local.env
-    AWS_SECRET_NAME      = "pixicred-${local.env}-secrets"
-    SNS_TOPIC_ARN        = aws_sns_topic.events.arn
-    CREDIT_CHECK_QUEUE_URL    = module.sqs_credit_check.queue_url
-    NOTIFICATION_QUEUE_URL    = module.sqs_notification.queue_url
-    STATEMENT_GEN_QUEUE_URL   = module.sqs_statement_gen.queue_url
+    ENVIRONMENT                 = local.env
+    SNS_TOPIC_ARN               = aws_sns_topic.events.arn
+    CREDIT_CHECK_QUEUE_URL      = module.sqs_credit_check.queue_url
+    NOTIFICATION_QUEUE_URL      = module.sqs_notification.queue_url
+    STATEMENT_GEN_QUEUE_URL     = module.sqs_statement_gen.queue_url
     BILLING_LIFECYCLE_QUEUE_URL = module.sqs_billing_lifecycle.queue_url
+    SES_FROM_ADDRESS            = "no-reply@pixicred.com"
   }
 }
 

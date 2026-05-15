@@ -170,6 +170,7 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 - **FR-EMAIL-07**: Payment-due reminder email: account holder's email; current balance, payment due date, days until due, minimum payment amount, and a note that the account will auto-close if unpaid 14 days after the due date
 - **FR-EMAIL-08**: Auto-close email: account holder's email; confirms the account has been automatically closed due to non-payment, shows the final balance, and includes instructions to reapply for a new account
 - **FR-EMAIL-09**: User-close confirmation email: account holder's email; confirms the account has been closed at their request and includes instructions to reapply
+- **FR-EMAIL-10**: Application submitted acknowledgment email: applicant's email; includes confirmation code (applicationId) and link to check application status at `/apply/status`
 
 ### 2.8 Payment Due Schedule
 

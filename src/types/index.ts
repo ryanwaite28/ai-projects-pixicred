@@ -153,7 +153,8 @@ export type ServiceAction =
   | { action: 'sendStatementEmail';            payload: { statementId: string } }
   | { action: 'sendPaymentDueReminderEmail';   payload: { accountId: string } }
   | { action: 'sendAutoCloseEmail';            payload: { accountId: string } }
-  | { action: 'sendUserCloseEmail';            payload: { accountId: string } }
+  | { action: 'sendUserCloseEmail';               payload: { accountId: string } }
+  | { action: 'sendApplicationSubmittedEmail';    payload: { applicationId: string } }
   | { action: 'runBillingLifecycle';           payload: { lookaheadDays: number } }
   | { action: 'registerPortalAccount';         payload: { email: string; accountId: string; password: string } }
   | { action: 'loginPortalAccount';            payload: { email: string; password: string } };

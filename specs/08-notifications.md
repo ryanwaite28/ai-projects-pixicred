@@ -1,5 +1,5 @@
 # Spec: Notifications
-**FR references**: FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04, FR-NOTIF-05, FR-NOTIF-06, FR-EMAIL-01, FR-EMAIL-02, FR-EMAIL-03, FR-EMAIL-04, FR-EMAIL-05, FR-EMAIL-06, FR-EMAIL-07, FR-EMAIL-08, FR-EMAIL-09
+**FR references**: FR-NOTIF-01, FR-NOTIF-02, FR-NOTIF-03, FR-NOTIF-04, FR-NOTIF-05, FR-NOTIF-06, FR-EMAIL-01, FR-EMAIL-02, FR-EMAIL-03, FR-EMAIL-04, FR-EMAIL-05, FR-EMAIL-06, FR-EMAIL-07, FR-EMAIL-08, FR-EMAIL-09, FR-EMAIL-10
 **Status**: ✅ Implemented
 
 ---
@@ -233,6 +233,7 @@ test('PATCH /accounts/:accountId/notifications returns 404 ACCOUNT_NOT_FOUND for
 - [x] `sendAutoCloseEmail`, `sendUserCloseEmail`, `sendDeclineEmail`, `sendApprovalEmail` are not preference-gated
 - [x] Notification handler correctly parses SNS envelope from SQS record body
 - [x] Unknown `eventType` acknowledged without throwing
+- [x] `APPLICATION_SUBMITTED` event handled by `sendApplicationSubmittedEmail`; acknowledgment email sent to applicant with confirmation code and status-check link (FR-EMAIL-10)
 - [x] `getStatementByIdOnly` and `getAccountByApplicationId` queries added and unit-tested
 - [x] Full async flow test: `postCharge` → `TRANSACTION_POSTED` → email sent and suppressed when disabled
 - [x] All service unit tests pass with fake SES client

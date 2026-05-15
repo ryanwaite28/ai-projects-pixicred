@@ -24,6 +24,7 @@ import {
   sendPaymentDueReminderEmail,
   sendAutoCloseEmail,
   sendUserCloseEmail,
+  sendApplicationSubmittedEmail,
 } from '../../service/notification.service.js';
 import { runBillingLifecycle } from '../../service/billing-lifecycle.service.js';
 import { registerPortalAccount, loginPortalAccount } from '../../service/auth.service.js';
@@ -81,6 +82,8 @@ export async function dispatch(event: ServiceAction): Promise<unknown> {
       return sendAutoCloseEmail(prisma, clients, event.payload);
     case 'sendUserCloseEmail':
       return sendUserCloseEmail(prisma, clients, event.payload);
+    case 'sendApplicationSubmittedEmail':
+      return sendApplicationSubmittedEmail(prisma, clients, event.payload);
     case 'runBillingLifecycle':
       return runBillingLifecycle(prisma, clients, event.payload);
     case 'registerPortalAccount':

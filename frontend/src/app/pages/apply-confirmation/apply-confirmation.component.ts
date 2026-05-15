@@ -12,10 +12,12 @@ export class ApplyConfirmationComponent implements OnInit {
   protected readonly applicationId = signal('');
 
   ngOnInit(): void {
-    const state = this.router.getCurrentNavigation()?.extras?.state as
-      | { applicationId?: string }
-      | undefined;
-    const id = state?.applicationId;
+    // getCurrentNavigation() is null for lazy-loaded components after the navigation
+    // has resolved. Fall back to history.state, which Angular Router also populates
+    // via the History API and persists after navigation completes.
+    const navState = (this.router.getCurrentNavigation()?.extras?.state
+      ?? history.state) as { applicationId?: string } | undefined;
+    const id = navState?.applicationId;
     if (!id) {
       this.router.navigate(['/apply']);
       return;

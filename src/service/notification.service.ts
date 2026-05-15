@@ -18,6 +18,7 @@ import { buildStatementEmail } from '../emails/statement.template.js';
 import { buildPaymentDueReminderEmail } from '../emails/payment-due-reminder.template.js';
 import { buildAutoCloseEmail } from '../emails/auto-close.template.js';
 import { buildUserCloseEmail } from '../emails/user-close.template.js';
+import { buildApplicationSubmittedEmail } from '../emails/application-submitted.template.js';
 import type {
   NotificationPreference,
   ServiceClients,
@@ -216,5 +217,24 @@ export async function sendUserCloseEmail(
     await clients.sesClient.sendEmail(email);
   } catch (e) {
     log('error', 'sendUserCloseEmail', 0, { error: String(e), accountId: input.accountId });
+  }
+}
+
+export async function sendApplicationSubmittedEmail(
+  prisma: PrismaClient,
+  clients: ServiceClients,
+  input: { applicationId: string },
+): Promise<void> {
+  assertUuid(input.applicationId, 'applicationId');
+  const application = await getApplicationById(prisma, input.applicationId);
+  if (!application) {
+    log('warn', 'sendApplicationSubmittedEmail', 0, { note: 'application not found', applicationId: input.applicationId });
+    return;
+  }
+  const email = buildApplicationSubmittedEmail(application);
+  try {
+    await clients.sesClient.sendEmail(email);
+  } catch (e) {
+    log('error', 'sendApplicationSubmittedEmail', 0, { error: String(e), applicationId: input.applicationId });
   }
 }
