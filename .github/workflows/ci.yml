@@ -110,6 +110,24 @@ jobs:
       - name: Build all Lambda bundles
         run: bash scripts/build.sh
 
+      - name: Smoke-require service Lambda external deps
+        working-directory: dist/lambdas/service
+        run: |
+          node -e "
+            // Verify that all external (non-bundled) deps required by the service Lambda
+            // actually resolve from within the package directory.
+            // Running on linux means native binaries (.node files) are the correct
+            // platform for the Lambda Amazon Linux runtime.
+            const cwd = process.cwd();
+            const assert = (label, fn) => {
+              try { fn(); console.log('  ✅', label); }
+              catch (e) { console.error('  ❌', label, '-', e.message); process.exitCode = 1; }
+            };
+            assert('@mapbox/node-pre-gyp loads',  () => require('./node_modules/@mapbox/node-pre-gyp'));
+            assert('bcrypt loads',                () => require('./node_modules/bcrypt'));
+            assert('@prisma/client loads',        () => require('./node_modules/@prisma/client'));
+          "
+
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
