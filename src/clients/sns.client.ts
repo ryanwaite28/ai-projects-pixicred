@@ -12,7 +12,11 @@ export function createSnsClient(): SnsClient {
       await sns.send(
         new PublishCommand({
           TopicArn: topicArn,
-          Message: JSON.stringify(payload),
+          // Embed eventType in the Message body so handlers can route without
+          // needing to parse MessageAttributes. MessageAttributes are kept for
+          // SNS subscription filter policies (e.g. credit-check only receives
+          // APPLICATION_SUBMITTED).
+          Message: JSON.stringify({ eventType, payload }),
           MessageAttributes: {
             eventType: { DataType: 'String', StringValue: eventType },
           },

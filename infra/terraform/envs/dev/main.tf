@@ -206,8 +206,9 @@ module "sqs_billing_lifecycle" {
   tags                       = local.tags
 }
 
-# ── SNS → SQS subscription (notification fan-out) ─────────────────────────
+# ── SNS → SQS subscriptions ───────────────────────────────────────────────
 
+# Notification queue receives all event types (no filter)
 resource "aws_sns_topic_subscription" "notification" {
   topic_arn = aws_sns_topic.events.arn
   protocol  = "sqs"
@@ -223,6 +224,31 @@ resource "aws_sqs_queue_policy" "notification_sns" {
       Principal = { Service = "sns.amazonaws.com" }
       Action    = "sqs:SendMessage"
       Resource  = module.sqs_notification.queue_arn
+      Condition = {
+        ArnEquals = { "aws:SourceArn" = aws_sns_topic.events.arn }
+      }
+    }]
+  })
+}
+
+# Credit-check queue receives only APPLICATION_SUBMITTED events
+resource "aws_sns_topic_subscription" "credit_check" {
+  topic_arn            = aws_sns_topic.events.arn
+  protocol             = "sqs"
+  endpoint             = module.sqs_credit_check.queue_arn
+  filter_policy        = jsonencode({ eventType = ["APPLICATION_SUBMITTED"] })
+  filter_policy_scope  = "MessageAttributes"
+}
+
+resource "aws_sqs_queue_policy" "credit_check_sns" {
+  queue_url = module.sqs_credit_check.queue_url
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "sns.amazonaws.com" }
+      Action    = "sqs:SendMessage"
+      Resource  = module.sqs_credit_check.queue_arn
       Condition = {
         ArnEquals = { "aws:SourceArn" = aws_sns_topic.events.arn }
       }
