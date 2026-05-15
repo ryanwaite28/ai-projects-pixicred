@@ -295,6 +295,17 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
+      - name: Update Lambda function code from S3
+        run: |
+          for dir in dist/lambdas/*/; do
+            name=$(basename "$dir")
+            aws lambda update-function-code \
+              --function-name "pixicred-dev-${name}" \
+              --s3-bucket "pixicred-dev-lambda-packages" \
+              --s3-key "${name}/index.zip" \
+              --no-cli-pager
+          done
+
   # ── Deploy frontend to dev ────────────────────────────────────────────────
   deploy-frontend-dev:
     name: Deploy frontend (dev)
@@ -509,6 +520,17 @@ jobs:
         run: |
           terraform init
           terraform apply -auto-approve
+
+      - name: Update Lambda function code from S3
+        run: |
+          for dir in dist/lambdas/*/; do
+            name=$(basename "$dir")
+            aws lambda update-function-code \
+              --function-name "pixicred-prod-${name}" \
+              --s3-bucket "pixicred-prod-lambda-packages" \
+              --s3-key "${name}/index.zip" \
+              --no-cli-pager
+          done
 
   # ── Deploy frontend to prod ───────────────────────────────────────────────
   deploy-frontend-prod:
