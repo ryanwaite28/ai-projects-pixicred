@@ -27,7 +27,7 @@ describe('db/client', () => {
     await getPrisma();
 
     expect(MockPrismaClient).toHaveBeenCalledWith({
-      datasources: { db: { url: 'postgresql://user:pass@localhost:5432/pixicred' } },
+      datasources: { db: { url: 'postgresql://user:pass@localhost:5432/pixicred?pgbouncer=true&connection_limit=1' } },
     });
   });
 
@@ -45,7 +45,7 @@ describe('db/client', () => {
     expect(MockPrismaClient).toHaveBeenCalledWith({
       datasources: {
         db: {
-          url: 'postgresql://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/postgres',
+          url: 'postgresql://user:pass@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1',
         },
       },
     });
