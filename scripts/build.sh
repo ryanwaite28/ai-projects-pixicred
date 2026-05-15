@@ -71,12 +71,12 @@ else
   FAIL=1
 fi
 
-# Prisma query engine for Lambda runtime (rhel-openssl — required for AWS Lambda)
+# Prisma query engine for Lambda runtime (rhel-openssl-3.0.x for AL2023, rhel-openssl-1.0.x for AL2)
 if ls "${SERVICE_DIR}/node_modules/.prisma/client"/libquery_engine-rhel*.node 2>/dev/null | grep -q ".node"; then
   echo "  ✅ Prisma query engine (rhel-openssl)"
 else
   echo "  ❌ Prisma query engine for Lambda (rhel-openssl) missing" >&2
-  echo "     Check that schema.prisma binaryTargets includes 'rhel-openssl-1.0.x'" >&2
+  echo "     schema.prisma binaryTargets must include 'rhel-openssl-3.0.x'" >&2
   FAIL=1
 fi
 
