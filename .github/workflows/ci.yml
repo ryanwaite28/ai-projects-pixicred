@@ -116,6 +116,7 @@ jobs:
           name: backend-dist
           path: dist/lambdas/
           retention-days: 1
+          include-hidden-files: true
 
   # ── Pre-deploy shift-left checks (dev) ────────────────────────────────────
   pre-deploy-check:
