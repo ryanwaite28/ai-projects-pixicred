@@ -2,6 +2,11 @@
 
 Serverless credit card lending platform. Angular SPA frontend, TypeScript Lambda backend, PostgreSQL via Prisma ORM, AWS infrastructure managed by Terraform.
 
+| Environment | Frontend | API |
+|---|---|---|
+| **Production** | [pixicred.com](https://pixicred.com) | [api.pixicred.com](https://api.pixicred.com) |
+| **Dev** | [dev.pixicred.com](https://dev.pixicred.com) | [api.dev.pixicred.com](https://api.dev.pixicred.com) |
+
 ---
 
 ## Architecture
