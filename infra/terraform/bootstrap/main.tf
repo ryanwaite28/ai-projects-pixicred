@@ -9,7 +9,7 @@ terraform {
 
 provider "aws" {
   region  = "us-east-1"
-  profile = "rmw-llc"
+  profile = var.aws_profile != "" ? var.aws_profile : null
 }
 
 resource "aws_s3_bucket" "tf_state" {

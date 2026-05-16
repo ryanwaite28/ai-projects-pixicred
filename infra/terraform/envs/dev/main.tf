@@ -1,6 +1,6 @@
 provider "aws" {
   region  = "us-east-1"
-  profile = "rmw-llc"
+  profile = var.aws_profile != "" ? var.aws_profile : null
 }
 
 # These resources are pre-created by bootstrap.sh. Import them into state on

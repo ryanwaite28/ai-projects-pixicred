@@ -310,6 +310,8 @@ jobs:
 
       - name: Terraform apply (dev)
         working-directory: infra/terraform/envs/dev
+        env:
+          TF_VAR_aws_profile: ""
         run: |
           terraform init
           terraform apply -auto-approve
@@ -536,6 +538,8 @@ jobs:
 
       - name: Terraform apply (prod)
         working-directory: infra/terraform/envs/prod
+        env:
+          TF_VAR_aws_profile: ""
         run: |
           terraform init
           terraform apply -auto-approve
