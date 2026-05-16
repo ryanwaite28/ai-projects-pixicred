@@ -18,6 +18,9 @@ export interface Account {
   satisfied: boolean;
   paymentDueDate: string;
   createdAt: string;
+  cardNumber: string;
+  cardExpiry: string;  // ISO date YYYY-MM-DD
+  cardCvv: string;
 }
 
 export interface Transaction {
@@ -116,6 +119,12 @@ export class AccountService {
         `${this.base}/accounts/${accountId}/transactions/${transactionId}/dispute`,
         {},
       )
+      .pipe(map((r) => r.data));
+  }
+
+  renewCard(accountId: string): Observable<Account> {
+    return this.http
+      .post<{ data: Account }>(`${this.base}/accounts/${accountId}/card/renew`, {})
       .pipe(map((r) => r.data));
   }
 }

@@ -1,5 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { SettingsService, NotificationPreferences } from '../../services/settings.service';
 
@@ -7,7 +8,7 @@ type PrefKey = keyof NotificationPreferences;
 
 @Component({
   selector: 'app-settings-notifications',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './settings-notifications.component.html',
 })
 export class SettingsNotificationsComponent implements OnInit {

@@ -1,5 +1,19 @@
 <div class="pxc-page max-w-2xl">
 
+  <!-- Settings sub-nav -->
+  <div class="flex gap-1 mb-6 border-b" style="border-color: var(--color-pxc-border)">
+    <a routerLink="/settings/account"
+       routerLinkActive="border-b-2 font-semibold"
+       [routerLinkActiveOptions]="{exact:true}"
+       style="color: var(--color-pxc-navy)"
+       class="px-4 py-2 text-sm -mb-px transition-colors hover:opacity-80">Account</a>
+    <a routerLink="/settings/notifications"
+       routerLinkActive="border-b-2 font-semibold"
+       [routerLinkActiveOptions]="{exact:true}"
+       style="color: var(--color-pxc-navy)"
+       class="px-4 py-2 text-sm -mb-px transition-colors hover:opacity-80">Notifications</a>
+  </div>
+
   <h1 class="text-2xl font-bold mb-1" style="color: var(--color-pxc-navy)">Notification settings</h1>
   <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">Choose which email notifications you receive.</p>
 

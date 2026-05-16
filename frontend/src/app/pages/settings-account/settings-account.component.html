@@ -1,5 +1,19 @@
 <div class="pxc-page max-w-2xl">
 
+  <!-- Settings sub-nav -->
+  <div class="flex gap-1 mb-6 border-b" style="border-color: var(--color-pxc-border)">
+    <a routerLink="/settings/account"
+       routerLinkActive="border-b-2 font-semibold"
+       [routerLinkActiveOptions]="{exact:true}"
+       style="color: var(--color-pxc-navy)"
+       class="px-4 py-2 text-sm -mb-px transition-colors hover:opacity-80">Account</a>
+    <a routerLink="/settings/notifications"
+       routerLinkActive="border-b-2 font-semibold"
+       [routerLinkActiveOptions]="{exact:true}"
+       style="color: var(--color-pxc-navy)"
+       class="px-4 py-2 text-sm -mb-px transition-colors hover:opacity-80">Notifications</a>
+  </div>
+
   <h1 class="text-2xl font-bold mb-1" style="color: var(--color-pxc-navy)">Account settings</h1>
   <p class="text-sm mb-6" style="color: var(--color-pxc-muted)">View your account details.</p>
 
@@ -64,6 +78,81 @@
       </dl>
     }
   </div>
+
+  <!-- Card details -->
+  @if (account(); as acc) {
+    <div class="pxc-card mb-6">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-base font-bold" style="color: var(--color-pxc-navy)">Card details</h2>
+        <span class="pxc-badge-neutral">Use on the Merchant Demo page</span>
+      </div>
+
+      <dl class="space-y-5">
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Card number</dt>
+          <dd class="flex items-center gap-2">
+            <span class="text-sm font-mono font-medium tracking-wider" style="color: var(--color-pxc-navy)">
+              {{ formatCardNumber(acc.cardNumber) }}
+            </span>
+            <button (click)="copyCardNumber(acc.cardNumber)"
+                    class="p-1 rounded hover:opacity-70 transition-opacity"
+                    style="color: var(--color-pxc-muted)"
+                    title="Copy card number">
+              @if (copiedCard()) {
+                <svg class="w-4 h-4" style="color: #15803d" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+              } @else {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+              }
+            </button>
+          </dd>
+        </div>
+
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Security code</dt>
+          <dd class="text-sm font-mono font-medium" style="color: var(--color-pxc-navy)">{{ acc.cardCvv }}</dd>
+        </div>
+
+        <div class="flex items-center justify-between gap-4">
+          <dt class="pxc-stat-label">Expires</dt>
+          <dd class="flex items-center gap-4">
+            <span class="text-sm font-medium" style="color: var(--color-pxc-navy)">{{ formatExpiry(acc.cardExpiry) }}</span>
+            <button class="pxc-btn-secondary text-xs px-3 py-1.5"
+                    (click)="renewCard()"
+                    [disabled]="renewingCard() || acc.status === 'CLOSED'">
+              @if (renewingCard()) {
+                <svg class="w-3.5 h-3.5 animate-spin inline-block mr-1" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                Renewing…
+              } @else {
+                Extend expiry
+              }
+            </button>
+          </dd>
+        </div>
+      </dl>
+
+      @if (renewSuccess()) {
+        <div class="pxc-alert success mt-4">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Card extended successfully — new expiry: {{ formatExpiry(acc.cardExpiry) }}</span>
+        </div>
+      }
+      @if (renewError()) {
+        <div class="pxc-alert error mt-4">
+          <span>{{ renewError() }}</span>
+        </div>
+      }
+    </div>
+  }
 
   <!-- Danger zone -->
   @if (account()?.status !== 'CLOSED') {

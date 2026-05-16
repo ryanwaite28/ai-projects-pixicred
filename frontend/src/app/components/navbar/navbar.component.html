@@ -9,17 +9,19 @@
       <a routerLink="/statements"   routerLinkActive="nav-active" class="nav-link">Statements</a>
     </div>
     <div class="flex items-center gap-3">
-      <a routerLink="/settings/account" routerLinkActive="nav-active" class="hidden sm:inline-flex nav-link text-xs">Settings</a>
+      <a routerLink="/settings/account"       routerLinkActive="nav-active" class="hidden sm:inline-flex nav-link text-xs">Settings</a>
+      <a routerLink="/settings/notifications" routerLinkActive="nav-active" class="hidden sm:inline-flex nav-link text-xs">Notifications</a>
       <button (click)="logout()" class="pxc-btn-ghost text-xs" style="color: #94a3b8">Sign out</button>
     </div>
   </nav>
   <div class="flex md:hidden border-b overflow-x-auto"
        style="background-color: var(--color-pxc-navy-light); border-color: rgba(255,255,255,0.08)">
-    <a routerLink="/dashboard"        routerLinkActive="nav-active" class="nav-link-mobile">Dashboard</a>
-    <a routerLink="/transactions"     routerLinkActive="nav-active" class="nav-link-mobile">Transactions</a>
-    <a routerLink="/payments"         routerLinkActive="nav-active" class="nav-link-mobile">Payments</a>
-    <a routerLink="/statements"       routerLinkActive="nav-active" class="nav-link-mobile">Statements</a>
-    <a routerLink="/settings/account" routerLinkActive="nav-active" class="nav-link-mobile">Settings</a>
+    <a routerLink="/dashboard"              routerLinkActive="nav-active" class="nav-link-mobile">Dashboard</a>
+    <a routerLink="/transactions"           routerLinkActive="nav-active" class="nav-link-mobile">Transactions</a>
+    <a routerLink="/payments"               routerLinkActive="nav-active" class="nav-link-mobile">Payments</a>
+    <a routerLink="/statements"             routerLinkActive="nav-active" class="nav-link-mobile">Statements</a>
+    <a routerLink="/settings/account"       routerLinkActive="nav-active" class="nav-link-mobile">Settings</a>
+    <a routerLink="/settings/notifications" routerLinkActive="nav-active" class="nav-link-mobile">Notifications</a>
   </div>
 } @else {
   <!-- Public nav -->
