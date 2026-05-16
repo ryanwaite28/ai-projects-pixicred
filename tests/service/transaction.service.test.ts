@@ -17,7 +17,9 @@ const clients = {
   portalBaseUrl: 'https://pixicred.com',
 };
 
+let accountSeq = 0;
 beforeEach(() => {
+  accountSeq = 0;
   vi.clearAllMocks();
   process.env['SNS_TOPIC_ARN'] = 'arn:aws:sns:us-east-1:000000000000:topic';
 });
@@ -37,7 +39,7 @@ async function makeAccount(overrides: { status?: string; creditLimit?: number } 
     holderEmail: app.email,
     creditLimit: overrides.creditLimit ?? 7500,
     paymentDueDate: '2026-06-25',
-    cardNumber: '1234567890123456',
+    cardNumber: String(++accountSeq).padStart(16, '0'),
     cardExpiry: new Date('2029-06-01T00:00:00Z'),
     cardCvv: '123',
   });
@@ -316,7 +318,7 @@ describe('postCharge', () => {
 
 describe('postMerchantCharge', () => {
   const validInput = {
-    cardNumber: '1234567890123456',
+    cardNumber: '0000000000000001', // matches counter-generated cardNumber from first makeAccount() call per test
     cardCvv: '123',
     merchantName: 'Acme Coffee',
     amount: 25,

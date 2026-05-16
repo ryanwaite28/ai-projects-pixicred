@@ -25,7 +25,9 @@ const clients = {
   portalBaseUrl: 'https://pixicred.com',
 };
 
+let accountSeq = 0;
 beforeEach(() => {
+  accountSeq = 0;
   vi.clearAllMocks();
   process.env['SNS_TOPIC_ARN'] = 'arn:aws:sns:us-east-1:000000000000:topic';
 });
@@ -54,7 +56,7 @@ async function makeAccount(opts: {
     holderEmail: email,
     creditLimit: 7500,
     paymentDueDate: '2026-06-25',
-    cardNumber: '1234567890123456',
+    cardNumber: String(++accountSeq).padStart(16, '0'),
     cardExpiry: new Date('2029-06-01T00:00:00Z'),
     cardCvv: '123',
   });

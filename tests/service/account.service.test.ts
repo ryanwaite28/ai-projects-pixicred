@@ -21,7 +21,9 @@ const clients = {
   portalBaseUrl: 'https://pixicred.com',
 };
 
+let accountSeq = 0;
 beforeEach(() => {
+  accountSeq = 0;
   vi.clearAllMocks();
   process.env['SNS_TOPIC_ARN'] = 'arn:aws:sns:us-east-1:000000000000:topic';
 });
@@ -42,8 +44,8 @@ async function makeAccount(overrides: { status?: string } = {}) {
     holderEmail: app.email,
     creditLimit: 7500,
     paymentDueDate: '2026-06-25',
-    cardNumber: '1234567890123456',
-    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardNumber: String(++accountSeq).padStart(16, '0'),
+    cardExpiry: new Date('2024-01-01T00:00:00Z'),
     cardCvv: '123',
   });
   if (overrides.status && overrides.status !== 'ACTIVE') {
