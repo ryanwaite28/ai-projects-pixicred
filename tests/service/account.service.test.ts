@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { createTestPrisma, cleanTables } from '../db/helpers';
-import { getAccount, closeAccount } from '../../src/service/account.service';
+import { getAccount, closeAccount, renewCard } from '../../src/service/account.service';
 import { PixiCredError } from '../../src/lib/errors';
 import {
   createApplication,
@@ -42,6 +42,9 @@ async function makeAccount(overrides: { status?: string } = {}) {
     holderEmail: app.email,
     creditLimit: 7500,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
   if (overrides.status && overrides.status !== 'ACTIVE') {
     await prisma.account.update({
@@ -238,5 +241,47 @@ describe('reapplication after close', () => {
     await closeAccount(prisma, clients, { accountId: created.accountId, reason: 'USER_REQUESTED' });
     const result = await getActiveApplicationOrAccountByEmail(prisma, 'jane@example.com');
     expect(result).toBeNull();
+  });
+});
+
+// ─── renewCard ────────────────────────────────────────────────────────────────
+
+describe('renewCard', () => {
+  it('extends cardExpiry by 36 months and returns updated account', async () => {
+    const created = await makeAccount();
+    const before = new Date(created.cardExpiry);
+    const result = await renewCard(prisma, clients, { accountId: created.accountId });
+    const after = new Date(result.cardExpiry);
+    expect(after > before).toBe(true);
+    // New expiry should be ~36 months from now, first of the month
+    expect(after.getUTCDate()).toBe(1);
+    expect(after.getUTCHours()).toBe(0);
+  });
+
+  it('returns account with all fields after renewal', async () => {
+    const created = await makeAccount();
+    const result = await renewCard(prisma, clients, { accountId: created.accountId });
+    expect(result.accountId).toBe(created.accountId);
+    expect(result.cardNumber).toBe(created.cardNumber);
+    expect(result.cardCvv).toBe(created.cardCvv);
+  });
+
+  it('throws ACCOUNT_NOT_FOUND for unknown accountId', async () => {
+    await expect(
+      renewCard(prisma, clients, { accountId: '00000000-0000-4000-8000-000000000099' }),
+    ).rejects.toMatchObject({ code: 'ACCOUNT_NOT_FOUND' });
+  });
+
+  it('throws VALIDATION_ERROR for non-UUID accountId', async () => {
+    await expect(
+      renewCard(prisma, clients, { accountId: 'not-a-uuid' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('throws ACCOUNT_CLOSED for a closed account', async () => {
+    const created = await makeAccount({ status: 'CLOSED' });
+    await expect(
+      renewCard(prisma, clients, { accountId: created.accountId }),
+    ).rejects.toMatchObject({ code: 'ACCOUNT_CLOSED' });
   });
 });

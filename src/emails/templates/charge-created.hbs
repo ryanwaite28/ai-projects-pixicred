@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{#if isDenied}}Transaction Denied{{else}}Transaction Processing{{/if}} — PixiCred</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #2c3e50;">{{#if isDenied}}Transaction Denied{{else}}Transaction Processing{{/if}}</h1>
+  <p>Dear Valued Customer,</p>
+  {{#if isDenied}}
+  <p>
+    A charge of <strong>${{amount}}</strong> at <strong>{{merchantName}}</strong> was
+    <strong style="color: #c0392b;">denied</strong> due to insufficient available credit.
+    No funds have been charged to your account.
+  </p>
+  {{else}}
+  <p>
+    A charge of <strong>${{amount}}</strong> at <strong>{{merchantName}}</strong> is
+    <strong style="color: #27ae60;">processing</strong> on your PixiCred account.
+    It will post within 24 hours.
+  </p>
+  {{/if}}
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Merchant</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{merchantName}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Amount</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{amount}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Status</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">{{status}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Current Balance</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${{currentBalance}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; color: #666;">Available Credit</td>
+      <td style="padding: 8px;">${{availableCredit}}</td>
+    </tr>
+  </table>
+  {{#unless isDenied}}
+  <p>
+    You can view this transaction in your
+    <a href="{{portalBaseUrl}}/transactions">account portal</a>.
+  </p>
+  {{/unless}}
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>

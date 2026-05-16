@@ -54,6 +54,9 @@ async function makeAccount(opts: {
     holderEmail: email,
     creditLimit: 7500,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
   if (opts.currentBalance !== undefined && opts.currentBalance !== 500) {
     await prisma.account.update({
@@ -91,6 +94,7 @@ async function postChargeDirectly(accountId: string, amount: number, key: string
     merchantName: 'TestMerchant',
     amount,
     idempotencyKey: key,
+    status: 'PROCESSING',
   });
   if (createdAt) {
     await prisma.transaction.update({ where: { transactionId: txn.transactionId }, data: { createdAt } });
@@ -107,6 +111,7 @@ async function postPaymentDirectly(accountId: string, amount: number, key: strin
     type: 'PAYMENT',
     amount,
     idempotencyKey: key,
+    status: 'POSTED',
   });
   if (createdAt) {
     await prisma.transaction.update({ where: { transactionId: txn.transactionId }, data: { createdAt } });
@@ -415,6 +420,7 @@ describe('getStatement', () => {
       merchantName: 'Shop',
       amount: 100,
       idempotencyKey: KEY_1,
+      status: 'PROCESSING',
     });
     // Place transaction firmly in the middle of the period
     await prisma.transaction.update({
@@ -448,7 +454,7 @@ describe('getStatement', () => {
     // In period
     const inPeriod = await createTransaction(prisma, {
       accountId: account.accountId, type: 'CHARGE', merchantName: 'In',
-      amount: 50, idempotencyKey: KEY_1,
+      amount: 50, idempotencyKey: KEY_1, status: 'PROCESSING',
     });
     await prisma.transaction.update({
       where: { transactionId: inPeriod.transactionId },
@@ -457,7 +463,7 @@ describe('getStatement', () => {
     // Outside period
     const outPeriod = await createTransaction(prisma, {
       accountId: account.accountId, type: 'CHARGE', merchantName: 'Out',
-      amount: 50, idempotencyKey: KEY_2,
+      amount: 50, idempotencyKey: KEY_2, status: 'PROCESSING',
     });
     await prisma.transaction.update({
       where: { transactionId: outPeriod.transactionId },
@@ -527,7 +533,7 @@ describe('getTransactionsByAccountAndPeriod', () => {
     const periodEnd   = new Date('2026-06-01T00:00:00Z');
     const atEnd = await createTransaction(prisma, {
       accountId: account.accountId, type: 'CHARGE', merchantName: 'AtEnd',
-      amount: 10, idempotencyKey: KEY_1,
+      amount: 10, idempotencyKey: KEY_1, status: 'PROCESSING',
     });
     await prisma.transaction.update({
       where: { transactionId: atEnd.transactionId },
@@ -543,7 +549,7 @@ describe('getTransactionsByAccountAndPeriod', () => {
     const periodEnd   = new Date('2026-06-01T00:00:00Z');
     const atStart = await createTransaction(prisma, {
       accountId: account.accountId, type: 'CHARGE', merchantName: 'AtStart',
-      amount: 10, idempotencyKey: KEY_1,
+      amount: 10, idempotencyKey: KEY_1, status: 'PROCESSING',
     });
     await prisma.transaction.update({
       where: { transactionId: atStart.transactionId },

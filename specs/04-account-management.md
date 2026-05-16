@@ -1,6 +1,7 @@
 # Spec: Account Management
-**FR references**: FR-ACC-02, FR-ACC-03, FR-ACC-04, FR-ACC-05, FR-ACC-09, FR-ACC-10, FR-EMAIL-09
+**FR references**: FR-ACC-02, FR-ACC-03, FR-ACC-04, FR-ACC-05, FR-ACC-09, FR-ACC-10, FR-ACC-11, FR-ACC-12, FR-EMAIL-09
 **Status**: ✅ Implemented
+**Modified in Phase 11a**: `renewCard` service function and `POST /accounts/:accountId/card/renew` API route added
 
 ---
 
@@ -19,10 +20,10 @@ FR-ACC-04 requires account retrieval; FR-ACC-05 defines status transitions; FR-A
 ## New / Modified Files
 
 ### Service layer
-- `src/service/account.service.ts` — implements `getAccount` and `closeAccount`; replaces Phase 1 stubs
+- `src/service/account.service.ts` — implements `getAccount` and `closeAccount`; replaces Phase 1 stubs; **Phase 11a adds** `renewCard`
 
 ### API handler
-- `src/handlers/api/accounts.handler.ts` — routes `GET /accounts/:accountId` → `getAccount`; routes `DELETE /accounts/:accountId` → `closeAccount` with `reason: 'USER_REQUESTED'`; shape validation only; maps results to HTTP response envelope
+- `src/handlers/api/accounts.handler.ts` — routes `GET /accounts/:accountId` → `getAccount`; routes `DELETE /accounts/:accountId` → `closeAccount` with `reason: 'USER_REQUESTED'`; shape validation only; maps results to HTTP response envelope; **Phase 11a adds** `POST /accounts/:accountId/card/renew` → `renewCard`
 
 ### Email template
 - `src/emails/user-close.template.ts` — `buildUserCloseEmail(account: Account): SendEmailInput` per FR-EMAIL-09; renders `src/emails/templates/user-close.hbs` via Handlebars
@@ -75,9 +76,19 @@ Fields (FR-EMAIL-09): `to = account.holderEmail`, `from = SES_FROM_EMAIL env var
 
 - `GET /accounts/:accountId` — `accountId` non-empty string; calls `getAccount`; returns `200 { data: account }`
 - `DELETE /accounts/:accountId` — `accountId` non-empty string; calls `closeAccount({ accountId, reason: 'USER_REQUESTED' })`; returns `200 { data: account }`
+- `POST /accounts/:accountId/card/renew` — auth-required; no request body needed; calls `renewCard({ accountId })`; returns `201 { data: account }` — **added Phase 11a (FR-ACC-12)**
 - On `PixiCredError`: returns `{ error: { code, message } }` with `toHttpStatus(code)`
 
 **No business logic in the handler**: the handler does not check account status, does not decide whether to send an email. It passes `reason: 'USER_REQUESTED'` as a fixed literal — that is input shaping, not a domain rule.
+
+### `renewCard(prisma, _clients, { accountId }): Promise<Account>` — Phase 11a (FR-ACC-12)
+
+1. `assertUuid(accountId, 'accountId')`
+2. `getAccountById(prisma, accountId)` → null → throw `ACCOUNT_NOT_FOUND`
+3. If `account.status === 'CLOSED'` → throw `PixiCredError('ACCOUNT_CLOSED', 'Cannot renew card on a closed account')`
+4. Compute `newExpiry = generateCardExpiry(new Date())` — first day of month 36 months from today
+5. `updateCardExpiry(prisma, accountId, newExpiry)`
+6. Return updated `Account`
 
 ---
 
@@ -126,6 +137,9 @@ test('DELETE /accounts/:accountId returns 200 with closed account on SUSPENDED a
 test('DELETE /accounts/:accountId returns 422 ACCOUNT_ALREADY_CLOSED when account is already CLOSED')
 test('DELETE /accounts/:accountId returns 404 ACCOUNT_NOT_FOUND for unknown accountId')
 test('DELETE /accounts/:accountId always passes reason USER_REQUESTED to service — never AUTO_NONPAYMENT')
+test('POST /accounts/:accountId/card/renew returns 201 with updated account and new cardExpiry')
+test('POST /accounts/:accountId/card/renew returns 422 ACCOUNT_CLOSED when account is closed')
+test('POST /accounts/:accountId/card/renew returns 404 ACCOUNT_NOT_FOUND for unknown accountId')
 ```
 
 ---
@@ -144,3 +158,6 @@ test('DELETE /accounts/:accountId always passes reason USER_REQUESTED to service
 - [x] Spec status updated to ✅ Implemented
 - [x] `specs/02-service-layer-foundation.md` stubs for `getAccount` and `closeAccount` marked replaced
 - [x] IMPLEMENTATION_PLAN.md Phase 3 (part 1) row marked complete
+- [x] Phase 11a: `renewCard` extends card expiry by 36 months and returns updated Account
+- [x] Phase 11a: `renewCard` throws `ACCOUNT_CLOSED` for closed accounts
+- [x] Phase 11a: `POST /accounts/:accountId/card/renew` returns `201` with updated account; requires valid JWT

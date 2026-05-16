@@ -30,6 +30,9 @@ async function seedAccount(email: string, paymentDueDate: string) {
     holderEmail: email,
     creditLimit: 5000,
     paymentDueDate,
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
 }
 

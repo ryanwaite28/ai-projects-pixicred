@@ -58,6 +58,9 @@ async function makeApprovedWithAccount() {
     holderEmail: app.email,
     creditLimit: 7500,
     paymentDueDate: '2026-06-25',
+    cardNumber: `${counter}`.padStart(16, '0'),
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
   await createPaymentDueSchedule(prisma, account.accountId, '2026-06-25');
   await createNotificationPreferences(prisma, account.accountId);
@@ -72,6 +75,7 @@ async function makeTransaction(accountId: string) {
     merchantName: 'Test Store',
     amount: 100,
     idempotencyKey: `key-tx-${counter}`,
+    status: 'PROCESSING',
   });
 }
 

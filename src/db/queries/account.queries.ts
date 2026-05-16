@@ -6,6 +6,9 @@ export interface CreateAccountInput {
   holderEmail: string;
   creditLimit: number;
   paymentDueDate: string;
+  cardNumber: string;
+  cardExpiry: Date;
+  cardCvv: string;
 }
 
 function mapAccount(row: {
@@ -19,6 +22,9 @@ function mapAccount(row: {
   closeReason: string | null;
   closedAt: Date | null;
   createdAt: Date;
+  cardNumber: string;
+  cardExpiry: Date;
+  cardCvv: string;
 }): Account {
   const creditLimit = row.creditLimit.toNumber();
   const currentBalance = row.currentBalance.toNumber();
@@ -34,6 +40,9 @@ function mapAccount(row: {
     closeReason: (row.closeReason as CloseReason | null) ?? null,
     closedAt: row.closedAt,
     createdAt: row.createdAt,
+    cardNumber: row.cardNumber,
+    cardExpiry: row.cardExpiry.toISOString().split('T')[0] as string,
+    cardCvv: row.cardCvv,
   };
 }
 
@@ -47,6 +56,9 @@ export async function createAccount(
       holderEmail: input.holderEmail,
       creditLimit: input.creditLimit,
       paymentDueDate: new Date(input.paymentDueDate + 'T00:00:00Z'),
+      cardNumber: input.cardNumber,
+      cardExpiry: input.cardExpiry,
+      cardCvv: input.cardCvv,
     },
   });
   return mapAccount(row);
@@ -57,6 +69,14 @@ export async function getAccountById(
   accountId: string,
 ): Promise<Account | null> {
   const row = await prisma.account.findUnique({ where: { accountId } });
+  return row ? mapAccount(row) : null;
+}
+
+export async function getAccountByCardNumber(
+  prisma: PrismaClient,
+  cardNumber: string,
+): Promise<Account | null> {
+  const row = await prisma.account.findUnique({ where: { cardNumber } });
   return row ? mapAccount(row) : null;
 }
 
@@ -84,6 +104,18 @@ export async function updateAccountBalance(
   const row = await prisma.account.update({
     where: { accountId },
     data: { currentBalance: newBalance },
+  });
+  return mapAccount(row);
+}
+
+export async function updateCardExpiry(
+  prisma: PrismaClient,
+  accountId: string,
+  newExpiry: Date,
+): Promise<Account> {
+  const row = await prisma.account.update({
+    where: { accountId },
+    data: { cardExpiry: newExpiry },
   });
   return mapAccount(row);
 }

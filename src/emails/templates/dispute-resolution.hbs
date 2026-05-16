@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dispute {{#if isAccepted}}Accepted{{else}}Denied{{/if}} — PixiCred</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #2c3e50;">Dispute {{#if isAccepted}}Accepted{{else}}Denied{{/if}}</h1>
+  <p>Dear Valued Customer,</p>
+  {{#if isAccepted}}
+  <p>
+    Your dispute for a charge of <strong>${{amount}}</strong> at <strong>{{merchantName}}</strong>
+    has been <strong style="color: #27ae60;">accepted</strong>. A credit will be applied to
+    your account if applicable.
+  </p>
+  {{else}}
+  <p>
+    Your dispute for a charge of <strong>${{amount}}</strong> at <strong>{{merchantName}}</strong>
+    has been <strong style="color: #c0392b;">denied</strong>. The original charge stands.
+  </p>
+  {{/if}}
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Transaction ID</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">{{transactionIdShort}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Merchant</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{merchantName}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Amount</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{amount}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Outcome</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">{{outcome}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; color: #666;">Resolution Date</td>
+      <td style="padding: 8px;">{{resolvedAt}}</td>
+    </tr>
+  </table>
+  <p>
+    View your account details in your
+    <a href="{{portalBaseUrl}}/transactions">account portal</a>.
+  </p>
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>

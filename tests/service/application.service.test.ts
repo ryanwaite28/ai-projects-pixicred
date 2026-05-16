@@ -124,6 +124,9 @@ describe('submitApplication', () => {
         holderEmail: base.email,
         creditLimit: 5000,
         paymentDueDate: new Date('2026-06-25'),
+        cardNumber: '9999000011112222',
+        cardExpiry: new Date('2029-06-01T00:00:00Z'),
+        cardCvv: '999',
       },
     });
     // Mark application as decided so duplicate check sees account
@@ -143,6 +146,9 @@ describe('submitApplication', () => {
         creditLimit: 5000,
         paymentDueDate: new Date('2026-06-25'),
         status: 'SUSPENDED',
+        cardNumber: '1111222233334444',
+        cardExpiry: new Date('2029-06-01T00:00:00Z'),
+        cardCvv: '111',
       },
     });
     const err = await submitApplication(prisma, clients, { ...base, email: 'sus@example.com' }).catch(e => e);
@@ -168,6 +174,9 @@ describe('submitApplication', () => {
         status: 'CLOSED',
         closeReason: 'USER_REQUESTED',
         closedAt: new Date(),
+        cardNumber: '5555666677778888',
+        cardExpiry: new Date('2029-06-01T00:00:00Z'),
+        cardCvv: '555',
       },
     });
     await updateApplicationStatus(prisma, app.applicationId, 'APPROVED', 5000);
@@ -413,5 +422,72 @@ describe('runCreditCheck', () => {
     const account = await getAccountById(prisma, accountRow!.accountId);
     const schedule = await getPaymentDueScheduleByAccountId(prisma, accountRow!.accountId);
     expect(account!.paymentDueDate).toBe(schedule!.paymentDueDate);
+  });
+});
+
+// ─── full async flow — submit → credit check → decision ──────────────────────
+
+describe('full async flow — submit → credit check → decision', () => {
+  it('APPROVED path: application reaches APPROVED, account created with correct fields, PaymentDueSchedule and NotificationPreferences exist, SNS events published in order', async () => {
+    const income = 60000;
+    const application = await submitApplication(prisma, clients, { ...base, mockSsn: '12345', annualIncome: income });
+    expect(application.status).toBe('PENDING');
+
+    await runCreditCheck(prisma, clients, { applicationId: application.applicationId });
+
+    const finalApp = await prisma.application.findUniqueOrThrow({ where: { applicationId: application.applicationId } });
+    expect(finalApp.status).toBe('APPROVED');
+    expect(finalApp.decidedAt).not.toBeNull();
+    expect(finalApp.creditLimit?.toNumber()).toBe(6000); // 60000 * 0.10
+
+    const accountRow = await prisma.account.findFirst({ where: { applicationId: application.applicationId } });
+    expect(accountRow).not.toBeNull();
+    expect(accountRow!.holderEmail).toBe(base.email);
+    expect(accountRow!.creditLimit.toNumber()).toBe(6000);
+    expect(accountRow!.currentBalance.toNumber()).toBe(500);
+    expect(accountRow!.creditLimit.toNumber() - accountRow!.currentBalance.toNumber()).toBe(5500); // 6000 - 500
+    expect(accountRow!.paymentDueDate.toISOString().slice(0, 10)).toMatch(/-25$/);
+
+    const schedule = await getPaymentDueScheduleByAccountId(prisma, accountRow!.accountId);
+    expect(schedule).not.toBeNull();
+    expect(schedule!.satisfied).toBe(false);
+
+    const prefs = await getNotificationPreferences(prisma, accountRow!.accountId);
+    expect(prefs).not.toBeNull();
+    expect(prefs!.transactionsEnabled).toBe(true);
+    expect(prefs!.statementsEnabled).toBe(true);
+    expect(prefs!.paymentRemindersEnabled).toBe(true);
+
+    const eventTypes = mockSnsPublish.mock.calls.map(([, type]) => type as string);
+    expect(eventTypes[0]).toBe('APPLICATION_SUBMITTED');
+    expect(eventTypes[1]).toBe('APPLICATION_DECIDED');
+    const decidedCall = mockSnsPublish.mock.calls.find(
+      ([, type]) => type === 'APPLICATION_DECIDED',
+    ) as [string, string, { decision: string; accountId: string }] | undefined;
+    expect(decidedCall![2].decision).toBe('APPROVED');
+    expect(decidedCall![2].accountId).toBe(accountRow!.accountId);
+  });
+
+  it('DECLINED path: application reaches DECLINED, no account created, decidedAt stamped, SNS APPLICATION_DECIDED published', async () => {
+    const application = await submitApplication(prisma, clients, { ...base, mockSsn: '54315' });
+    expect(application.status).toBe('PENDING');
+
+    await runCreditCheck(prisma, clients, { applicationId: application.applicationId });
+
+    const finalApp = await prisma.application.findUniqueOrThrow({ where: { applicationId: application.applicationId } });
+    expect(finalApp.status).toBe('DECLINED');
+    expect(finalApp.decidedAt).not.toBeNull();
+    expect(finalApp.creditLimit).toBeNull();
+
+    const accountRow = await prisma.account.findFirst({ where: { applicationId: application.applicationId } });
+    expect(accountRow).toBeNull();
+
+    const eventTypes = mockSnsPublish.mock.calls.map(([, type]) => type as string);
+    expect(eventTypes[0]).toBe('APPLICATION_SUBMITTED');
+    expect(eventTypes[1]).toBe('APPLICATION_DECIDED');
+    const decidedCall = mockSnsPublish.mock.calls.find(
+      ([, type]) => type === 'APPLICATION_DECIDED',
+    ) as [string, string, { decision: string }] | undefined;
+    expect(decidedCall![2].decision).toBe('DECLINED');
   });
 });

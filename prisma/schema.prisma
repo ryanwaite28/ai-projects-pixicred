@@ -39,6 +39,9 @@ model Account {
   closeReason    String?   @map("close_reason")
   closedAt       DateTime? @map("closed_at") @db.Timestamptz(6)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  cardNumber     String    @unique @map("card_number")
+  cardExpiry     DateTime  @map("card_expiry") @db.Date
+  cardCvv        String    @map("card_cvv")
 
   application             Application             @relation(fields: [applicationId], references: [applicationId])
   paymentDueSchedule      PaymentDueSchedule?
@@ -69,17 +72,22 @@ model PaymentDueSchedule {
 }
 
 model Transaction {
-  transactionId  String   @id @default(uuid()) @map("transaction_id") @db.Uuid
-  accountId      String   @map("account_id") @db.Uuid
-  type           String
-  merchantName   String?  @map("merchant_name")
-  amount         Decimal  @db.Decimal(10, 2)
-  idempotencyKey String   @map("idempotency_key")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  transactionId   String   @id @default(uuid()) @map("transaction_id") @db.Uuid
+  accountId       String   @map("account_id") @db.Uuid
+  type            String
+  merchantName    String?  @map("merchant_name")
+  amount          Decimal  @db.Decimal(10, 2)
+  idempotencyKey  String   @map("idempotency_key")
+  status          String   @default("PROCESSING")
+  statusUpdatedAt DateTime @default(now()) @map("status_updated_at") @db.Timestamptz(6)
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   account Account @relation(fields: [accountId], references: [accountId])
 
   @@index([accountId])
+  @@index([status])
+  @@index([status, createdAt])
   @@unique([accountId, idempotencyKey])
   @@map("transactions")
 }

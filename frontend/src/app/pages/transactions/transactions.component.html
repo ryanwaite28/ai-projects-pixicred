@@ -40,14 +40,31 @@
             }
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium truncate" style="color: var(--color-pxc-navy)">
-              {{ txn.merchantName ?? '—' }}
-            </p>
+            <div class="flex items-center gap-2 mb-0.5">
+              <p class="text-sm font-medium truncate" style="color: var(--color-pxc-navy)">
+                {{ txn.merchantName ?? '—' }}
+              </p>
+              @switch (txn.status) {
+                @case ('PROCESSING')       { <span class="pxc-badge-amber">Processing</span> }
+                @case ('POSTED')           { <span class="pxc-badge-green">Posted</span> }
+                @case ('DENIED')           { <span class="pxc-badge-red">Denied</span> }
+                @case ('DISPUTED')         { <span class="pxc-badge-blue">Disputed</span> }
+                @case ('DISPUTE_ACCEPTED') { <span class="pxc-badge-green">Accepted</span> }
+                @case ('DISPUTE_DENIED')   { <span class="pxc-badge-red">Denied</span> }
+              }
+            </div>
             <p class="text-xs" style="color: var(--color-pxc-muted)">{{ txn.createdAt | date:'medium' }}</p>
           </div>
-          <div class="shrink-0 text-sm font-semibold tabular-nums"
-               [style.color]="txn.type === 'PAYMENT' ? 'var(--color-pxc-success)' : 'var(--color-pxc-navy)'">
-            {{ txn.type === 'PAYMENT' ? '−' : '+' }}{{ txn.amount | currency }}
+          <div class="shrink-0 flex items-center gap-3">
+            @if (txn.type === 'CHARGE' && txn.status === 'POSTED') {
+              <button class="pxc-btn-ghost text-xs px-3 py-1.5" (click)="openDisputeModal(txn); $event.stopPropagation()">
+                Dispute
+              </button>
+            }
+            <span class="text-sm font-semibold tabular-nums"
+                 [style.color]="txn.type === 'PAYMENT' ? 'var(--color-pxc-success)' : 'var(--color-pxc-navy)'">
+              {{ txn.type === 'PAYMENT' ? '−' : '+' }}{{ txn.amount | currency }}
+            </span>
           </div>
         </div>
       }
@@ -72,3 +89,43 @@
 
   </div>
 </div>
+
+@if (showDisputeModal()) {
+  <div class="pxc-modal-backdrop">
+    <div class="pxc-modal">
+      <h3 class="text-lg font-semibold mb-3" style="color: var(--color-pxc-navy)">Dispute Transaction?</h3>
+      <p class="text-sm mb-1" style="color: var(--color-pxc-muted)">
+        Are you sure you want to dispute the
+        <strong style="color: var(--color-pxc-navy)">{{ pendingDisputeTx()!.amount | currency }}</strong>
+        charge at
+        <strong style="color: var(--color-pxc-navy)">{{ pendingDisputeTx()!.merchantName }}</strong>?
+        This action cannot be undone.
+      </p>
+
+      @if (disputeError()) {
+        <div class="pxc-alert error mt-3">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ disputeError() }}</span>
+        </div>
+      }
+
+      <div class="pxc-modal-actions">
+        <button class="pxc-btn-ghost" (click)="cancelDispute()" [disabled]="disputing()">Cancel</button>
+        <button class="pxc-btn-danger" (click)="confirmDispute()" [disabled]="disputing()">
+          @if (disputing()) {
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Submitting…
+          } @else {
+            Yes, Dispute
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

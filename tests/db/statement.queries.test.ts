@@ -30,6 +30,9 @@ async function seedAccount() {
     holderEmail: 'stmt@example.com',
     creditLimit: 5000,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
 }
 
@@ -139,6 +142,7 @@ describe('getStatementWithTransactions', () => {
       type: 'CHARGE',
       amount: 100,
       idempotencyKey: 'in-period',
+      status: 'PROCESSING',
     });
 
     const result = await getStatementWithTransactions(prisma, account.accountId, stmt.statementId);

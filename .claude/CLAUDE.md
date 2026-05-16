@@ -390,6 +390,9 @@ Local worker → polls MiniStack SQS → service functions
 | `specs/12b-frontend-public.md` | Phase 10b — public apply flow |
 | `specs/12c-frontend-account.md` | Phase 10c — account pages |
 | `specs/12d-frontend-settings.md` | Phase 10d — settings pages |
+| `specs/13-card-management.md` | Phase 11a — card credentials on Account + renewal |
+| `specs/14-merchant-charge.md` | Phase 11b — public merchant charge endpoint |
+| `specs/12e-frontend-merchant.md` | Phase 10e — Angular merchant demo page |
 
 ---
 

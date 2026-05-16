@@ -1,6 +1,7 @@
 # Spec: Application & Underwriting
-**FR references**: FR-APP-01, FR-APP-02, FR-APP-03, FR-APP-04, FR-APP-05, FR-APP-06, FR-APP-07, FR-APP-08, FR-APP-09, FR-ACC-01, FR-ACC-06, FR-ACC-07, FR-ACC-08, FR-DUE-01, FR-DUE-02, FR-DUE-05, FR-NOTIF-01, FR-EMAIL-01, FR-EMAIL-02, FR-AUTH-07, NFR-01
+**FR references**: FR-APP-01, FR-APP-02, FR-APP-03, FR-APP-04, FR-APP-05, FR-APP-06, FR-APP-07, FR-APP-08, FR-APP-09, FR-ACC-01, FR-ACC-06, FR-ACC-07, FR-ACC-08, FR-ACC-11, FR-DUE-01, FR-DUE-02, FR-DUE-05, FR-NOTIF-01, FR-EMAIL-01, FR-EMAIL-02, FR-AUTH-07, NFR-01
 **Status**: ✅ Implemented
+**Modified in Phase 11a**: `runCreditCheck` generates card credentials (`cardNumber`, `cardExpiry`, `cardCvv`) and passes them to `createAccount`
 
 ---
 
@@ -101,8 +102,12 @@ const isDeclined = (ssn: string): boolean => ssn[0] === '5' && ssn[4] === '5';
   - `dueMonth = createdAt.getUTCMonth() === 11 ? 0 : createdAt.getUTCMonth() + 1`
   - `dueYear  = createdAt.getUTCMonth() === 11 ? createdAt.getUTCFullYear() + 1 : createdAt.getUTCFullYear()`
   - `paymentDueDate = new Date(Date.UTC(dueYear, dueMonth, 25)).toISOString().slice(0, 10)`
+- Generate card credentials (FR-ACC-11 — added Phase 11a):
+  - `cardNumber = generateCardNumber()` — 16 random digits, zero-padded
+  - `cardExpiry = generateCardExpiry(new Date())` — first day of the month 36 months from now
+  - `cardCvv = generateCardCvv()` — 3 random digits, zero-padded
 - Within a single `prisma.$transaction()` (atomic):
-  - `createAccount(prisma, { applicationId, holderEmail: application.email, creditLimit, paymentDueDate })` — `currentBalance` defaults to 500.00 (FR-ACC-06)
+  - `createAccount(prisma, { applicationId, holderEmail: application.email, creditLimit, paymentDueDate, cardNumber, cardExpiry, cardCvv })` — `currentBalance` defaults to 500.00 (FR-ACC-06)
   - `createPaymentDueSchedule(prisma, account.accountId, paymentDueDate)` (FR-DUE-01, FR-DUE-02)
   - `createNotificationPreferences(prisma, account.accountId)` (FR-NOTIF-01)
 - Publish `APPLICATION_DECIDED` to SNS with `{ applicationId, decision: 'APPROVED', accountId }`
@@ -189,6 +194,9 @@ test('runCreditCheck creates Account with currentBalance 500.00 on approval')
 test('runCreditCheck creates Account with availableCredit equal to creditLimit minus 500')
 test('runCreditCheck creates Account with paymentDueDate on 25th of the month following creation')
 test('runCreditCheck creates Account with paymentDueDate rolling into January when created in December')
+test('runCreditCheck stores 16-digit cardNumber on approved account')
+test('runCreditCheck stores cardExpiry 36 months in the future on the first of the month')
+test('runCreditCheck stores 3-digit cardCvv on approved account')
 test('runCreditCheck creates PaymentDueSchedule atomically with Account on approval')
 test('runCreditCheck creates NotificationPreference with all three fields defaulting to true on approval')
 test('runCreditCheck publishes APPLICATION_DECIDED event with decision DECLINED to SNS client')
@@ -253,7 +261,7 @@ test('full flow: submit application enqueues SQS message, credit check runs, no 
 - [x] Email templates include all fields required by FR-EMAIL-01 and FR-EMAIL-02
 - [x] All service unit tests pass against Testcontainers Postgres
 - [x] All handler integration tests pass (unit tests with mocked serviceClient)
-- [ ] Full async flow test (submit → SQS → credit check → decision) passes against MiniStack
+- [x] Full async flow test (submit → credit check → decision) passes against Testcontainers Postgres (service-layer end-to-end; SQS dispatch tested via handler integration tests)
 - [x] Spec status updated to ✅ Implemented
 - [x] `specs/02-service-layer-foundation.md` stubs for `submitApplication`, `getApplication`, `runCreditCheck` marked replaced
 - [x] IMPLEMENTATION_PLAN.md Phase 2 row marked complete

@@ -64,10 +64,14 @@ All methods use Angular `HttpClient`. Auth interceptor injects `Authorization: B
 ### Transactions page (`/transactions`)
 
 - Loads first page on init: `accountService.getTransactions(accountId)`
-- Displays table: type badge (CHARGE/PAYMENT), merchant name (or "—" for payments), amount, date
+- Displays table: type badge (CHARGE/PAYMENT), status badge (PROCESSING/POSTED/DENIED/DISPUTED/DISPUTE_ACCEPTED/DISPUTE_DENIED), merchant name (or "—" for payments), amount, date
+- "Dispute" button visible only on CHARGE transactions with `status = 'POSTED'`; clicking opens confirmation modal
+- Confirmation modal: shows charge amount and merchant; Cancel dismisses; Confirm calls `disputeTransaction()`; on success updates transaction status in list to DISPUTED
+- Dispute error displayed inside modal if API call fails; modal stays open
 - "Load More" button: calls `getTransactions(accountId, lastTransactionId)` and appends to list
 - "Load More" hidden when response returns fewer than 20 items (end of list)
 - Loading state per page load; no full-page re-render on pagination
+- See also: Phase 12g (`specs/15g-frontend-transaction-updates.md`) for full implementation details
 
 ### Payments page (`/payments`)
 

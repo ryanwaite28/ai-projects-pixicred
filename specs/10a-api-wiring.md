@@ -71,6 +71,7 @@ src/handlers/api/statements.handler.ts    → dist/lambdas/api-statements/index.
 src/handlers/api/notifications.handler.ts → dist/lambdas/api-notifications/index.js
 src/handlers/api/auth.handler.ts          → dist/lambdas/api-auth/index.js
 src/handlers/api/admin.handler.ts         → dist/lambdas/api-admin/index.js
+src/handlers/api/merchant.handler.ts      → dist/lambdas/api-merchant/index.js  ← Phase 11b
 src/handlers/service/service.handler.ts   → dist/lambdas/service/index.js
 src/handlers/sqs/credit-check.handler.ts  → dist/lambdas/credit-check/index.js
 src/handlers/sqs/notification.handler.ts  → dist/lambdas/notification/index.js
@@ -94,6 +95,7 @@ GET    /accounts/:accountId                         → getAccount          [JWT
 DELETE /accounts/:accountId                         → closeAccount({ reason: 'USER_REQUESTED' })  [JWT required]
 POST   /accounts/:accountId/transactions            → postCharge          [JWT required]
 GET    /accounts/:accountId/transactions            → getTransactions     [JWT required]
+POST   /accounts/:accountId/card/renew              → renewCard           [JWT required]  ← Phase 11a
 POST   /accounts/:accountId/payments                → postPayment         [JWT required]
 GET    /accounts/:accountId/statements              → getStatements       [JWT required]
 GET    /accounts/:accountId/statements/:statementId → getStatement        [JWT required]
@@ -101,6 +103,7 @@ POST   /accounts/:accountId/statements              → generateStatement   [JWT
 GET    /accounts/:accountId/notifications           → getNotificationPreferences  [JWT required]
 PATCH  /accounts/:accountId/notifications           → updateNotificationPreferences  [JWT required]
 POST   /admin/billing-lifecycle                     → sqsClient.sendMessage(BILLING_LIFECYCLE_QUEUE_URL, ...)
+POST   /merchant/charge                             → postMerchantCharge  [no auth]       ← Phase 11b
 ```
 
 JWT validation for `[JWT required]` routes in `local/api-server.ts`: decode Bearer token from `Authorization` header using `jsonwebtoken` inline, verify HS256 signature with `JWT_SECRET` env var, assert `accountId` in payload matches `:accountId` path param. On failure return 401 UNAUTHORIZED or 403 FORBIDDEN. **Note**: `src/lib/jwt.ts` is not created until Phase 9 — this local-server JWT check is implemented inline and is not shared with Lambda handlers. Lambda handlers gain JWT enforcement in Phase 9 when `src/lib/jwt.ts` exists.
@@ -115,6 +118,7 @@ Long-polls each queue with `WaitTimeSeconds = 20`. Round-robin across all four q
 |---|---|---|
 | api-* (including api-auth) | service Lambda ARN | — |
 | api-admin | — | `sqs:SendMessage` on billing-lifecycle queue |
+| api-merchant | service Lambda ARN | — (no JWT validation; no Secrets Manager access needed) ← Phase 11b |
 | service | — | `ses:SendEmail`, `sns:Publish`, `secretsmanager:GetSecretValue`, `rds-db:connect` (scoped to `pixicred_app`) |
 | credit-check | service Lambda ARN | `sqs:ReceiveMessage`, `sqs:DeleteMessage` on credit-check queue |
 | notification | service Lambda ARN | `sqs:ReceiveMessage`, `sqs:DeleteMessage` on notification queue |

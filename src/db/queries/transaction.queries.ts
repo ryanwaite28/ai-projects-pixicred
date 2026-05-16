@@ -1,12 +1,14 @@
 import { PrismaClient } from '@prisma/client';
-import type { Transaction, TransactionType } from '../../types/index';
+import type { Transaction, TransactionType, TransactionStatus } from '../../types/index';
 
 export interface CreateTransactionInput {
-  accountId: string;
-  type: TransactionType;
-  merchantName?: string;
-  amount: number;
+  accountId:      string;
+  type:           TransactionType;
+  merchantName?:  string;
+  amount:         number;
   idempotencyKey: string;
+  status:         TransactionStatus;
+  notes?:         string;
 }
 
 export interface GetTransactionsInput {
@@ -16,22 +18,28 @@ export interface GetTransactionsInput {
 }
 
 function mapTransaction(row: {
-  transactionId: string;
-  accountId: string;
-  type: string;
-  merchantName: string | null;
-  amount: { toNumber(): number };
-  idempotencyKey: string;
-  createdAt: Date;
+  transactionId:   string;
+  accountId:       string;
+  type:            string;
+  merchantName:    string | null;
+  amount:          { toNumber(): number };
+  idempotencyKey:  string;
+  status:          string;
+  statusUpdatedAt: Date;
+  notes:           string | null;
+  createdAt:       Date;
 }): Transaction {
   return {
-    transactionId: row.transactionId,
-    accountId: row.accountId,
-    type: row.type as TransactionType,
-    merchantName: row.merchantName,
-    amount: row.amount.toNumber(),
-    idempotencyKey: row.idempotencyKey,
-    createdAt: row.createdAt,
+    transactionId:   row.transactionId,
+    accountId:       row.accountId,
+    type:            row.type as TransactionType,
+    merchantName:    row.merchantName,
+    amount:          row.amount.toNumber(),
+    idempotencyKey:  row.idempotencyKey,
+    status:          row.status as TransactionStatus,
+    statusUpdatedAt: row.statusUpdatedAt,
+    notes:           row.notes ?? null,
+    createdAt:       row.createdAt,
   };
 }
 
@@ -46,6 +54,8 @@ export async function createTransaction(
       merchantName: input.merchantName ?? null,
       amount: input.amount,
       idempotencyKey: input.idempotencyKey,
+      status: input.status,
+      notes: input.notes ?? null,
     },
   });
   return mapTransaction(row);
@@ -97,4 +107,37 @@ export async function getTransactionById(
 ): Promise<Transaction | null> {
   const row = await prisma.transaction.findUnique({ where: { transactionId } });
   return row ? mapTransaction(row) : null;
+}
+
+export async function updateTransactionStatus(
+  prisma: PrismaClient,
+  transactionId: string,
+  status: TransactionStatus,
+): Promise<Transaction> {
+  const row = await prisma.transaction.update({
+    where: { transactionId },
+    data: { status, statusUpdatedAt: new Date() },
+  });
+  return mapTransaction(row);
+}
+
+export async function getDisputedTransactions(
+  prisma: PrismaClient,
+): Promise<Transaction[]> {
+  const rows = await prisma.transaction.findMany({
+    where:   { status: 'DISPUTED' },
+    orderBy: { statusUpdatedAt: 'asc' },
+  });
+  return rows.map(mapTransaction);
+}
+
+export async function getProcessingChargesOlderThan(
+  prisma: PrismaClient,
+  cutoff: Date,
+): Promise<Transaction[]> {
+  const rows = await prisma.transaction.findMany({
+    where:   { type: 'CHARGE', status: 'PROCESSING', createdAt: { lte: cutoff } },
+    orderBy: { createdAt: 'asc' },
+  });
+  return rows.map(mapTransaction);
 }

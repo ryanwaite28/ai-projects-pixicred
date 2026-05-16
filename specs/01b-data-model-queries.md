@@ -1,7 +1,9 @@
 # Spec: Data Model — Query Layer
-**FR references**: FR-APP-01, FR-APP-02, FR-APP-09, FR-ACC-02, FR-ACC-06, FR-DUE-01, FR-DUE-04, FR-TXN-01, FR-STMT-03, FR-NOTIF-01, FR-BILL-03, FR-BILL-04
+**FR references**: FR-APP-01, FR-APP-02, FR-APP-09, FR-ACC-02, FR-ACC-06, FR-ACC-11, FR-ACC-12, FR-DUE-01, FR-DUE-04, FR-TXN-01, FR-TXN-08, FR-STMT-03, FR-NOTIF-01, FR-BILL-03, FR-BILL-04
 **Status**: ✅ Implemented
 **Prerequisite**: Phase 1a (schema migrated, types defined)
+**Modified in Phase 11a**: `CreateAccountInput` updated to include card fields; `updateCardExpiry` added
+**Modified in Phase 11b**: `getAccountByCardNumber` added
 
 ---
 
@@ -65,10 +67,12 @@ export async function updateApplicationStatus(
 ```typescript
 export interface CreateAccountInput {
   applicationId: string; holderEmail: string; creditLimit: number; paymentDueDate: string;
+  // Added Phase 11a (FR-ACC-11)
+  cardNumber: string; cardExpiry: Date; cardCvv: string;
 }
 
 export async function createAccount(prisma: PrismaClient, input: CreateAccountInput): Promise<Account>
-// Inserts with currentBalance = 500.00 (FR-ACC-06), status = 'ACTIVE'.
+// Inserts with currentBalance = 500.00 (FR-ACC-06), status = 'ACTIVE'. Stores card credentials (Phase 11a).
 
 export async function getAccountById(prisma: PrismaClient, accountId: string): Promise<Account | null>
 
@@ -87,6 +91,12 @@ export async function getAccountsForStatements(prisma: PrismaClient): Promise<Ac
 
 export async function getAccountByApplicationId(prisma: PrismaClient, applicationId: string): Promise<Account | null>
 // Added in Phase 6. Fetches account by applicationId; used by sendApprovalEmail where only applicationId is in the SNS payload.
+
+export async function getAccountByCardNumber(prisma: PrismaClient, cardNumber: string): Promise<Account | null>
+// Added Phase 11b (FR-TXN-08). Looks up account by unique card number; used by postMerchantCharge.
+
+export async function updateCardExpiry(prisma: PrismaClient, accountId: string, newExpiry: Date): Promise<Account>
+// Added Phase 11a (FR-ACC-12). Sets cardExpiry to newExpiry; used by renewCard service function.
 ```
 
 ### `src/db/queries/payment-due-schedule.queries.ts`
@@ -225,14 +235,18 @@ test('updateApplicationStatus sets status DECLINED and leaves creditLimit null')
 test('createAccount inserts row with currentBalance 500.00 and status ACTIVE')
 test('createAccount derives availableCredit as creditLimit minus 500')
 test('createAccount sets paymentDueDate to provided date')
+test('createAccount stores cardNumber, cardExpiry, cardCvv on the account row')
 test('getAccountById returns null when id does not exist')
-test('getAccountById returns Account with all fields mapped')
+test('getAccountById returns Account with all fields mapped including card fields')
 test('updateAccountStatus sets status to SUSPENDED')
 test('updateAccountStatus sets status to CLOSED with closeReason and closedAt')
 test('updateAccountBalance sets currentBalance and recalculates availableCredit')
 test('getActiveAccountByEmail returns ACTIVE account for email')
 test('getActiveAccountByEmail returns SUSPENDED account for email')
 test('getActiveAccountByEmail returns null when only CLOSED account exists for email')
+test('getAccountByCardNumber returns null when card number does not exist')
+test('getAccountByCardNumber returns Account for matching card number')
+test('updateCardExpiry sets cardExpiry to new value and returns updated Account')
 ```
 
 ### `tests/db/payment-due-schedule.queries.test.ts`
@@ -301,3 +315,6 @@ test('updateNotificationPreferences performs partial update — unspecified fiel
 - [x] `getAccountsDueForReminder` and `getAccountsOverdueForAutoClose` boundary conditions verified by test
 - [x] Spec status updated to ✅ Implemented
 - [x] IMPLEMENTATION_PLAN.md Phase 1b row marked complete
+- [x] Phase 11a: `createAccount` accepts and stores `cardNumber`, `cardExpiry`, `cardCvv`; `mapAccount` maps card fields
+- [x] Phase 11a: `updateCardExpiry` updates and returns Account with new expiry
+- [x] Phase 11b: `getAccountByCardNumber` returns `Account | null` by unique card number

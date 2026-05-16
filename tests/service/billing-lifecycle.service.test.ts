@@ -58,6 +58,9 @@ async function makeAccount(opts: {
     holderEmail: email,
     creditLimit: 7500,
     paymentDueDate: opts.paymentDueDateIso,
+    cardNumber: `${emailCounter}`.padStart(16, '0'),
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
 
   if (opts.status && opts.status !== 'ACTIVE') {

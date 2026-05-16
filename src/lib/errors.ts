@@ -4,7 +4,6 @@ export type ErrorCode =
   | 'APPLICATION_NOT_FOUND'
   | 'ACCOUNT_NOT_FOUND'
   | 'ACCOUNT_NOT_ACTIVE'
-  | 'INSUFFICIENT_CREDIT'
   | 'PAYMENT_EXCEEDS_BALANCE'
   | 'STATEMENT_NOT_FOUND'
   | 'ACCOUNT_ALREADY_CLOSED'
@@ -13,6 +12,12 @@ export type ErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'PORTAL_ACCOUNT_EXISTS'
   | 'PORTAL_ACCOUNT_NOT_ELIGIBLE'
+  | 'ACCOUNT_CLOSED'
+  | 'CARD_NOT_FOUND'
+  | 'INVALID_CARD_CVV'
+  | 'CARD_EXPIRED'
+  | 'TRANSACTION_NOT_FOUND'
+  | 'TRANSACTION_NOT_DISPUTABLE'
   | 'NOT_IMPLEMENTED'
   | 'INTERNAL_ERROR';
 
@@ -33,10 +38,15 @@ export function toHttpStatus(code: ErrorCode): number {
     case 'APPLICATION_NOT_FOUND':       return 404;
     case 'ACCOUNT_NOT_FOUND':           return 404;
     case 'ACCOUNT_NOT_ACTIVE':          return 422;
-    case 'INSUFFICIENT_CREDIT':         return 422;
     case 'PAYMENT_EXCEEDS_BALANCE':     return 422;
     case 'STATEMENT_NOT_FOUND':         return 404;
     case 'ACCOUNT_ALREADY_CLOSED':      return 422;
+    case 'ACCOUNT_CLOSED':              return 422;
+    case 'CARD_NOT_FOUND':              return 404;
+    case 'INVALID_CARD_CVV':            return 422;
+    case 'CARD_EXPIRED':                return 422;
+    case 'TRANSACTION_NOT_FOUND':       return 404;
+    case 'TRANSACTION_NOT_DISPUTABLE':  return 422;
     case 'UNAUTHORIZED':                return 401;
     case 'FORBIDDEN':                   return 403;
     case 'INVALID_CREDENTIALS':         return 401;

@@ -1,6 +1,13 @@
 export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'DECLINED';
 export type AccountStatus     = 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
 export type TransactionType   = 'CHARGE' | 'PAYMENT';
+export type TransactionStatus =
+  | 'PROCESSING'
+  | 'POSTED'
+  | 'DENIED'
+  | 'DISPUTED'
+  | 'DISPUTE_ACCEPTED'
+  | 'DISPUTE_DENIED';
 export type CloseReason       = 'USER_REQUESTED' | 'AUTO_NONPAYMENT';
 
 export interface Application {
@@ -29,6 +36,9 @@ export interface Account {
   closeReason:     CloseReason | null;
   closedAt:        Date | null;
   createdAt:       Date;
+  cardNumber:      string;
+  cardExpiry:      string;  // ISO date YYYY-MM-DD
+  cardCvv:         string;
 }
 
 export interface PaymentDueSchedule {
@@ -41,13 +51,16 @@ export interface PaymentDueSchedule {
 }
 
 export interface Transaction {
-  transactionId:  string;
-  accountId:      string;
-  type:           TransactionType;
-  merchantName:   string | null;
-  amount:         number;
-  idempotencyKey: string;
-  createdAt:      Date;
+  transactionId:   string;
+  accountId:       string;
+  type:            TransactionType;
+  merchantName:    string | null;
+  amount:          number;
+  idempotencyKey:  string;
+  status:          TransactionStatus;
+  statusUpdatedAt: Date;
+  notes:           string | null;
+  createdAt:       Date;
 }
 
 export interface Statement {
@@ -105,6 +118,14 @@ export interface SubmitApplicationInput {
   mockSsn:      string;
 }
 
+export interface PostMerchantChargeInput {
+  cardNumber:     string;
+  cardCvv:        string;
+  merchantName:   string;
+  amount:         number;
+  idempotencyKey: string;
+}
+
 export interface PostChargeInput {
   accountId:     string;
   merchantName?: string;
@@ -158,4 +179,13 @@ export type ServiceAction =
   | { action: 'sendApplicationSubmittedEmail';    payload: { applicationId: string } }
   | { action: 'runBillingLifecycle';           payload: { lookaheadDays: number } }
   | { action: 'registerPortalAccount';         payload: { email: string; accountId: string; password: string } }
-  | { action: 'loginPortalAccount';            payload: { email: string; password: string } };
+  | { action: 'loginPortalAccount';            payload: { email: string; password: string } }
+  | { action: 'renewCard';                     payload: { accountId: string } }
+  | { action: 'postMerchantCharge';            payload: PostMerchantChargeInput }
+  | { action: 'disputeTransaction';            payload: { accountId: string; transactionId: string } }
+  | { action: 'settleTransactions';            payload: Record<string, never> }
+  | { action: 'resolveDisputes';               payload: Record<string, never> }
+  | { action: 'sendChargeCreatedEmail';        payload: { transactionId: string } }
+  | { action: 'sendChargePostedEmail';         payload: { transactionId: string } }
+  | { action: 'sendDisputeConfirmationEmail';  payload: { transactionId: string } }
+  | { action: 'sendDisputeResolutionEmail';    payload: { transactionId: string; outcome: 'DISPUTE_ACCEPTED' | 'DISPUTE_DENIED' } };

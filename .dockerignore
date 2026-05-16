@@ -1,0 +1,23 @@
+# Exclude everything not needed by any Dockerfile stage.
+#
+# build/runtime stages need: dist/  node_modules/
+# local-dev stage needs:     package*.json  prisma/
+#
+# node_modules/ is kept so the build/runtime (Lambda packaging) stages work.
+# The local-dev stage ignores the host node_modules and runs npm ci inside
+# the container to get Linux-native binaries.
+
+.git
+.claude
+.env*
+!.env.example
+frontend
+tests
+specs
+infra
+scripts
+local
+src
+coverage
+*.log
+*.md

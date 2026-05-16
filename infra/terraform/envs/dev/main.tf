@@ -1,5 +1,6 @@
 provider "aws" {
-  region = "us-east-1"
+  region  = "us-east-1"
+  profile = "rmw-llc"
 }
 
 # These resources are pre-created by bootstrap.sh. Import them into state on
@@ -61,7 +62,43 @@ locals {
       {
         Effect   = "Allow"
         Action   = ["sqs:SendMessage"]
-        Resource = module.sqs_billing_lifecycle.queue_arn
+        Resource = [
+          module.sqs_billing_lifecycle.queue_arn,
+          module.sqs_dispute_resolution.queue_arn,
+          module.sqs_transaction_settlement.queue_arn,
+        ]
+      }
+    ]
+  })
+
+  dispute_resolution_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = module.service_lambda.function_arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Resource = module.sqs_dispute_resolution.queue_arn
+      }
+    ]
+  })
+
+  transaction_settlement_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = module.service_lambda.function_arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Resource = module.sqs_transaction_settlement.queue_arn
       }
     ]
   })
@@ -213,6 +250,22 @@ module "sqs_billing_lifecycle" {
   tags                       = local.tags
 }
 
+module "sqs_dispute_resolution" {
+  source                     = "../../modules/sqs"
+  name                       = "pixicred-${local.env}-dispute-resolution"
+  visibility_timeout_seconds = 900
+  max_receive_count          = 3
+  tags                       = local.tags
+}
+
+module "sqs_transaction_settlement" {
+  source                     = "../../modules/sqs"
+  name                       = "pixicred-${local.env}-transaction-settlement"
+  visibility_timeout_seconds = 900
+  max_receive_count          = 3
+  tags                       = local.tags
+}
+
 # ── SNS → SQS subscriptions ───────────────────────────────────────────────
 
 # Notification queue receives all event types (no filter)
@@ -276,14 +329,10 @@ module "service_lambda" {
   tags          = local.tags
 
   environment = {
-    ENVIRONMENT                 = local.env
-    SNS_TOPIC_ARN               = aws_sns_topic.events.arn
-    CREDIT_CHECK_QUEUE_URL      = module.sqs_credit_check.queue_url
-    NOTIFICATION_QUEUE_URL      = module.sqs_notification.queue_url
-    STATEMENT_GEN_QUEUE_URL     = module.sqs_statement_gen.queue_url
-    BILLING_LIFECYCLE_QUEUE_URL = module.sqs_billing_lifecycle.queue_url
-    SES_FROM_ADDRESS            = "no-reply@pixicred.com"
-    PORTAL_BASE_URL             = "https://dev.pixicred.com"
+    ENVIRONMENT      = local.env
+    SNS_TOPIC_ARN    = aws_sns_topic.events.arn
+    SES_FROM_ADDRESS = "no-reply@pixicred.com"
+    PORTAL_BASE_URL  = "https://dev.pixicred.com"
   }
 }
 
@@ -384,8 +433,22 @@ module "api_admin" {
   tags          = local.tags
 
   environment = merge(local.api_common_env, {
-    BILLING_LIFECYCLE_QUEUE_URL = module.sqs_billing_lifecycle.queue_url
+    BILLING_LIFECYCLE_QUEUE_URL      = module.sqs_billing_lifecycle.queue_url
+    DISPUTE_RESOLUTION_QUEUE_URL     = module.sqs_dispute_resolution.queue_url
+    TRANSACTION_SETTLEMENT_QUEUE_URL = module.sqs_transaction_settlement.queue_url
   })
+}
+
+module "api_merchant" {
+  source        = "../../modules/lambda"
+  function_name = "pixicred-${local.env}-api-merchant"
+  memory_size   = 256
+  timeout       = 30
+  s3_bucket     = aws_s3_bucket.lambda_packages.bucket
+  s3_key        = "api-merchant/index.zip"
+  policy_json   = local.service_invoke_policy
+  environment   = local.api_common_env
+  tags          = local.tags
 }
 
 module "api_health" {
@@ -457,6 +520,30 @@ module "lambda_billing_lifecycle" {
   tags          = local.tags
 }
 
+module "lambda_dispute_resolution" {
+  source        = "../../modules/lambda"
+  function_name = "pixicred-${local.env}-dispute-resolution"
+  memory_size   = 256
+  timeout       = 900
+  s3_bucket     = aws_s3_bucket.lambda_packages.bucket
+  s3_key        = "dispute-resolution/index.zip"
+  policy_json   = local.dispute_resolution_policy
+  environment   = { ENVIRONMENT = local.env, SERVICE_LAMBDA_ARN = module.service_lambda.function_arn }
+  tags          = local.tags
+}
+
+module "lambda_transaction_settlement" {
+  source        = "../../modules/lambda"
+  function_name = "pixicred-${local.env}-transaction-settlement"
+  memory_size   = 256
+  timeout       = 900
+  s3_bucket     = aws_s3_bucket.lambda_packages.bucket
+  s3_key        = "transaction-settlement/index.zip"
+  policy_json   = local.transaction_settlement_policy
+  environment   = { ENVIRONMENT = local.env, SERVICE_LAMBDA_ARN = module.service_lambda.function_arn }
+  tags          = local.tags
+}
+
 # ── SQS event source mappings ─────────────────────────────────────────────
 
 resource "aws_lambda_event_source_mapping" "credit_check" {
@@ -483,7 +570,79 @@ resource "aws_lambda_event_source_mapping" "billing_lifecycle" {
   batch_size       = 1
 }
 
+resource "aws_lambda_event_source_mapping" "dispute_resolution" {
+  event_source_arn = module.sqs_dispute_resolution.queue_arn
+  function_name    = module.lambda_dispute_resolution.function_arn
+  batch_size       = 1
+}
+
+resource "aws_lambda_event_source_mapping" "transaction_settlement" {
+  event_source_arn = module.sqs_transaction_settlement.queue_arn
+  function_name    = module.lambda_transaction_settlement.function_arn
+  batch_size       = 1
+}
+
 # ── EventBridge rules ─────────────────────────────────────────────────────
+
+resource "aws_cloudwatch_event_rule" "transaction_settlement_daily" {
+  name                = "pixicred-${local.env}-transaction-settlement-daily"
+  description         = "Daily transaction settlement job — advances PROCESSING charges to POSTED"
+  schedule_expression = "cron(0 8 * * ? *)"
+  tags                = local.tags
+}
+
+resource "aws_cloudwatch_event_target" "transaction_settlement_daily" {
+  rule      = aws_cloudwatch_event_rule.transaction_settlement_daily.name
+  target_id = "TransactionSettlementSqs"
+  arn       = module.sqs_transaction_settlement.queue_arn
+  input     = jsonencode({})
+}
+
+resource "aws_sqs_queue_policy" "transaction_settlement_eventbridge" {
+  queue_url = module.sqs_transaction_settlement.queue_url
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "events.amazonaws.com" }
+      Action    = "sqs:SendMessage"
+      Resource  = module.sqs_transaction_settlement.queue_arn
+      Condition = {
+        ArnEquals = { "aws:SourceArn" = aws_cloudwatch_event_rule.transaction_settlement_daily.arn }
+      }
+    }]
+  })
+}
+
+resource "aws_cloudwatch_event_rule" "dispute_resolution_daily" {
+  name                = "pixicred-${local.env}-dispute-resolution-daily"
+  description         = "Daily dispute resolution job — resolves all DISPUTED transactions"
+  schedule_expression = "cron(0 6 * * ? *)"
+  tags                = local.tags
+}
+
+resource "aws_cloudwatch_event_target" "dispute_resolution_daily" {
+  rule      = aws_cloudwatch_event_rule.dispute_resolution_daily.name
+  target_id = "DisputeResolutionSqs"
+  arn       = module.sqs_dispute_resolution.queue_arn
+  input     = jsonencode({})
+}
+
+resource "aws_sqs_queue_policy" "dispute_resolution_eventbridge" {
+  queue_url = module.sqs_dispute_resolution.queue_url
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "events.amazonaws.com" }
+      Action    = "sqs:SendMessage"
+      Resource  = module.sqs_dispute_resolution.queue_arn
+      Condition = {
+        ArnEquals = { "aws:SourceArn" = aws_cloudwatch_event_rule.dispute_resolution_daily.arn }
+      }
+    }]
+  })
+}
 
 resource "aws_cloudwatch_event_rule" "billing_lifecycle_daily" {
   name                = "pixicred-${local.env}-billing-lifecycle-daily"
@@ -597,6 +756,7 @@ module "api_gateway" {
       routes = [
         { method = "POST", path = "/accounts/{accountId}/transactions" },
         { method = "GET",  path = "/accounts/{accountId}/transactions" },
+        { method = "POST", path = "/accounts/{accountId}/transactions/{transactionId}/dispute" },
       ]
     }
     payments = {
@@ -636,6 +796,15 @@ module "api_gateway" {
       invoke_arn = module.api_admin.invoke_arn
       routes = [
         { method = "POST", path = "/admin/billing-lifecycle" },
+        { method = "POST", path = "/admin/dispute-resolution" },
+        { method = "POST", path = "/admin/transaction-settlement" },
+      ]
+    }
+    merchant = {
+      lambda_arn = module.api_merchant.function_arn
+      invoke_arn = module.api_merchant.invoke_arn
+      routes = [
+        { method = "POST", path = "/merchant/charge" },
       ]
     }
     health = {
@@ -762,15 +931,53 @@ resource "aws_cloudwatch_metric_alarm" "dlq_billing_lifecycle" {
   }
 }
 
+resource "aws_cloudwatch_metric_alarm" "dlq_dispute_resolution" {
+  alarm_name          = "pixicred-${local.env}-dlq-dispute-resolution-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 0
+  alarm_description   = "Messages in dispute-resolution DLQ"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  tags                = local.tags
+
+  dimensions = {
+    QueueName = split(":", module.sqs_dispute_resolution.dlq_arn)[5]
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "dlq_transaction_settlement" {
+  alarm_name          = "pixicred-${local.env}-dlq-transaction-settlement-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 0
+  alarm_description   = "Messages in transaction-settlement DLQ"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  tags                = local.tags
+
+  dimensions = {
+    QueueName = split(":", module.sqs_transaction_settlement.dlq_arn)[5]
+  }
+}
+
 # ── CloudWatch alarms: Lambda errors ─────────────────────────────────────
 
 locals {
   monitored_lambdas = {
-    service          = module.service_lambda.function_name
-    credit_check     = module.lambda_credit_check.function_name
-    notification     = module.lambda_notification.function_name
-    statement_gen    = module.lambda_statement_gen.function_name
-    billing_lifecycle = module.lambda_billing_lifecycle.function_name
+    service                = module.service_lambda.function_name
+    credit_check           = module.lambda_credit_check.function_name
+    notification           = module.lambda_notification.function_name
+    statement_gen          = module.lambda_statement_gen.function_name
+    billing_lifecycle      = module.lambda_billing_lifecycle.function_name
+    dispute_resolution     = module.lambda_dispute_resolution.function_name
+    transaction_settlement = module.lambda_transaction_settlement.function_name
   }
 }
 

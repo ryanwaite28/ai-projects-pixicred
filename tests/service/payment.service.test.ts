@@ -41,6 +41,9 @@ async function makeAccount(overrides: { status?: string; currentBalance?: number
     holderEmail: app.email,
     creditLimit: 7500,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
   // createAccount seeds currentBalance = 500; set a custom balance if needed
   if (overrides.currentBalance !== undefined && overrides.currentBalance !== 500) {

@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
-import { getAccountById, updateAccountStatus } from '../db/queries/account.queries.js';
+import { getAccountById, updateAccountStatus, updateCardExpiry } from '../db/queries/account.queries.js';
 import { PixiCredError } from '../lib/errors.js';
+import { generateCardExpiry } from '../lib/card.js';
 import { assertUuid } from '../lib/validate.js';
 import type { Account, CloseReason, ServiceClients } from '../types/index.js';
 
@@ -15,6 +16,23 @@ export async function getAccount(
     throw new PixiCredError('ACCOUNT_NOT_FOUND', `Account ${input.accountId} not found`);
   }
   return account;
+}
+
+export async function renewCard(
+  prisma: PrismaClient,
+  _clients: ServiceClients,
+  input: { accountId: string },
+): Promise<Account> {
+  assertUuid(input.accountId, 'accountId');
+  const account = await getAccountById(prisma, input.accountId);
+  if (!account) {
+    throw new PixiCredError('ACCOUNT_NOT_FOUND', `Account ${input.accountId} not found`);
+  }
+  if (account.status === 'CLOSED') {
+    throw new PixiCredError('ACCOUNT_CLOSED', 'Cannot renew card on a closed account');
+  }
+  const newExpiry = generateCardExpiry(new Date());
+  return updateCardExpiry(prisma, input.accountId, newExpiry);
 }
 
 export async function closeAccount(

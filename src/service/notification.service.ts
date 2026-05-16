@@ -14,6 +14,10 @@ import {
 import { buildDeclineEmail } from '../emails/decline.template.js';
 import { buildApprovalEmail } from '../emails/approval.template.js';
 import { buildTransactionEmail } from '../emails/transaction.template.js';
+import { buildChargeCreatedEmail } from '../emails/charge-created.template.js';
+import { buildChargePostedEmail } from '../emails/charge-posted.template.js';
+import { buildDisputeConfirmationEmail } from '../emails/dispute-confirmation.template.js';
+import { buildDisputeResolutionEmail } from '../emails/dispute-resolution.template.js';
 import { buildStatementEmail } from '../emails/statement.template.js';
 import { buildPaymentDueReminderEmail } from '../emails/payment-due-reminder.template.js';
 import { buildAutoCloseEmail } from '../emails/auto-close.template.js';
@@ -116,7 +120,10 @@ export async function sendTransactionEmail(
     log('info', 'sendTransactionEmail', 0, { note: 'suppressed by preference', accountId: account.accountId });
     return;
   }
-  const email = buildTransactionEmail(transaction, account, clients.portalBaseUrl);
+  // TRANSACTION_POSTED for CHARGE type (settled by settlement job) uses the charge-posted template
+  const email = transaction.type === 'CHARGE'
+    ? buildChargePostedEmail(transaction, account, clients.portalBaseUrl)
+    : buildTransactionEmail(transaction, account, clients.portalBaseUrl);
   try {
     await clients.sesClient.sendEmail(email);
   } catch (e) {
@@ -236,5 +243,113 @@ export async function sendApplicationSubmittedEmail(
     await clients.sesClient.sendEmail(email);
   } catch (e) {
     log('error', 'sendApplicationSubmittedEmail', 0, { error: String(e), applicationId: input.applicationId });
+  }
+}
+
+export async function sendChargeCreatedEmail(
+  prisma: PrismaClient,
+  clients: ServiceClients,
+  input: { transactionId: string },
+): Promise<void> {
+  assertUuid(input.transactionId, 'transactionId');
+  const transaction = await getTransactionById(prisma, input.transactionId);
+  if (!transaction) {
+    log('warn', 'sendChargeCreatedEmail', 0, { note: 'transaction not found', transactionId: input.transactionId });
+    return;
+  }
+  const account = await getAccountById(prisma, transaction.accountId);
+  if (!account) {
+    log('warn', 'sendChargeCreatedEmail', 0, { note: 'account not found', accountId: transaction.accountId });
+    return;
+  }
+  const prefs = await queryGetPrefs(prisma, account.accountId);
+  if (prefs?.transactionsEnabled === false) {
+    log('info', 'sendChargeCreatedEmail', 0, { note: 'suppressed by preference', accountId: account.accountId });
+    return;
+  }
+  const email = buildChargeCreatedEmail(transaction, account, clients.portalBaseUrl);
+  try {
+    await clients.sesClient.sendEmail(email);
+  } catch (e) {
+    log('error', 'sendChargeCreatedEmail', 0, { error: String(e), transactionId: input.transactionId });
+  }
+}
+
+export async function sendChargePostedEmail(
+  prisma: PrismaClient,
+  clients: ServiceClients,
+  input: { transactionId: string },
+): Promise<void> {
+  assertUuid(input.transactionId, 'transactionId');
+  const transaction = await getTransactionById(prisma, input.transactionId);
+  if (!transaction) {
+    log('warn', 'sendChargePostedEmail', 0, { note: 'transaction not found', transactionId: input.transactionId });
+    return;
+  }
+  const account = await getAccountById(prisma, transaction.accountId);
+  if (!account) {
+    log('warn', 'sendChargePostedEmail', 0, { note: 'account not found', accountId: transaction.accountId });
+    return;
+  }
+  const prefs = await queryGetPrefs(prisma, account.accountId);
+  if (prefs?.transactionsEnabled === false) {
+    log('info', 'sendChargePostedEmail', 0, { note: 'suppressed by preference', accountId: account.accountId });
+    return;
+  }
+  const email = buildChargePostedEmail(transaction, account, clients.portalBaseUrl);
+  try {
+    await clients.sesClient.sendEmail(email);
+  } catch (e) {
+    log('error', 'sendChargePostedEmail', 0, { error: String(e), transactionId: input.transactionId });
+  }
+}
+
+export async function sendDisputeConfirmationEmail(
+  prisma: PrismaClient,
+  clients: ServiceClients,
+  input: { transactionId: string },
+): Promise<void> {
+  assertUuid(input.transactionId, 'transactionId');
+  const transaction = await getTransactionById(prisma, input.transactionId);
+  if (!transaction) {
+    log('warn', 'sendDisputeConfirmationEmail', 0, { note: 'transaction not found', transactionId: input.transactionId });
+    return;
+  }
+  const account = await getAccountById(prisma, transaction.accountId);
+  if (!account) {
+    log('warn', 'sendDisputeConfirmationEmail', 0, { note: 'account not found', accountId: transaction.accountId });
+    return;
+  }
+  // No preference gate — always delivered (FR-NOTIF-07)
+  const email = buildDisputeConfirmationEmail(transaction, account, clients.portalBaseUrl);
+  try {
+    await clients.sesClient.sendEmail(email);
+  } catch (e) {
+    log('error', 'sendDisputeConfirmationEmail', 0, { error: String(e), transactionId: input.transactionId });
+  }
+}
+
+export async function sendDisputeResolutionEmail(
+  prisma: PrismaClient,
+  clients: ServiceClients,
+  input: { transactionId: string; outcome: 'DISPUTE_ACCEPTED' | 'DISPUTE_DENIED' },
+): Promise<void> {
+  assertUuid(input.transactionId, 'transactionId');
+  const transaction = await getTransactionById(prisma, input.transactionId);
+  if (!transaction) {
+    log('warn', 'sendDisputeResolutionEmail', 0, { note: 'transaction not found', transactionId: input.transactionId });
+    return;
+  }
+  const account = await getAccountById(prisma, transaction.accountId);
+  if (!account) {
+    log('warn', 'sendDisputeResolutionEmail', 0, { note: 'account not found', accountId: transaction.accountId });
+    return;
+  }
+  // No preference gate — always delivered (FR-NOTIF-07)
+  const email = buildDisputeResolutionEmail(transaction, account, input.outcome, clients.portalBaseUrl);
+  try {
+    await clients.sesClient.sendEmail(email);
+  } catch (e) {
+    log('error', 'sendDisputeResolutionEmail', 0, { error: String(e), transactionId: input.transactionId });
   }
 }

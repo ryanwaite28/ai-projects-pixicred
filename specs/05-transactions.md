@@ -188,3 +188,4 @@ test('GET /accounts/:accountId/transactions returns 404 ACCOUNT_NOT_FOUND for un
 - [x] Spec status updated to ✅ Implemented
 - [x] `specs/02-service-layer-foundation.md` stubs for `postCharge` and `getTransactions` marked replaced
 - [x] IMPLEMENTATION_PLAN.md Phase 3 (part 2) row marked complete
+- [x] Phase 11b: `postMerchantCharge` added to `src/service/transaction.service.ts`; resolves account by card number, validates CVV and expiry, delegates to `postCharge`

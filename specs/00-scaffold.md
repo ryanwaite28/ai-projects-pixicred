@@ -136,7 +136,7 @@ test('db:migrate is idempotent — running twice does not throw')
 - [x] `npm run db:generate` (`prisma generate`) exits 0 and PrismaClient is available in `node_modules/.prisma/client`
 - [x] `npm run build` exits 0 and `dist/` is populated (Prisma client marked external; `.hbs` loader active)
 - [ ] `docker-compose up -d && docker-compose ps` shows all services healthy
-- [ ] `infra/ministack/init.sh` exits 0 and all 4 queues + 4 DLQs + SNS topic exist in MiniStack
+- [ ] `infra/ministack/init.sh` exits 0 and all 6 queues + 6 DLQs + SNS topic exist in MiniStack
 - [ ] `npm run db:migrate` (`prisma migrate deploy`) exits 0 (idempotent on repeat run)
 - [x] All toolchain unit tests pass (`npm run test`)
 - [ ] All scaffold integration tests pass (`npm run test:integration`)

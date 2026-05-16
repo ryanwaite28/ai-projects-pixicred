@@ -241,4 +241,53 @@ html, body {
     &:last-child { @apply border-b-0; }
     &:hover { background-color: var(--color-pxc-slate); }
   }
+
+  /* Status badges */
+  .pxc-badge-green {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+    background-color: var(--color-pxc-success-bg);
+    color: #15803d;
+  }
+
+  .pxc-badge-amber {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+    background-color: var(--color-pxc-warning-bg);
+    color: #92400e;
+  }
+
+  .pxc-badge-red {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+    background-color: var(--color-pxc-error-bg);
+    color: #b91c1c;
+  }
+
+  .pxc-badge-blue {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+    background-color: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  /* Danger button */
+  .pxc-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm text-white
+           px-6 py-3 rounded-xl transition-all duration-150 cursor-pointer;
+    background-color: #dc2626;
+    &:hover { background-color: #b91c1c; }
+    &:focus-visible { @apply outline-2 outline-offset-2; outline-color: #dc2626; }
+    &:disabled { @apply opacity-50 cursor-not-allowed; }
+  }
+
+  /* Confirmation modal */
+  .pxc-modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .pxc-modal {
+    @apply bg-white rounded-2xl p-6 w-full max-w-md shadow-xl;
+  }
+
+  .pxc-modal-actions {
+    @apply flex justify-end gap-3 mt-6;
+  }
 }

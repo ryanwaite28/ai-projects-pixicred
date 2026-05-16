@@ -109,7 +109,7 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 ### 2.2 Account Management
 
 - **FR-ACC-01**: An `Account` is created automatically upon application approval; never created manually
-- **FR-ACC-02**: Account fields: `accountId`, `applicationId`, `holderEmail`, `creditLimit`, `currentBalance`, `availableCredit` (derived), `status`, `paymentDueDate`, `closedAt`, `closeReason`, `createdAt`
+- **FR-ACC-02**: Account fields: `accountId`, `applicationId`, `holderEmail`, `creditLimit`, `currentBalance`, `availableCredit` (derived), `status`, `paymentDueDate`, `closedAt`, `closeReason`, `createdAt`, `cardNumber`, `cardExpiry`, `cardCvv`
 - **FR-ACC-03**: `availableCredit` is always derived as `creditLimit - currentBalance`; never stored independently
 - **FR-ACC-04**: Accounts can be retrieved by `accountId`
 - **FR-ACC-05**: Account status transitions: `ACTIVE` → `SUSPENDED` → `ACTIVE` (reinstate); `ACTIVE` | `SUSPENDED` → `CLOSED` (irreversible). Close reasons: `USER_REQUESTED` | `AUTO_NONPAYMENT`
@@ -118,16 +118,25 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 - **FR-ACC-08**: A `PaymentDueSchedule` record is created alongside the account (see Section 2.8)
 - **FR-ACC-09**: User-initiated account close: `DELETE /accounts/:accountId`. Sets `status = CLOSED`, `closeReason = USER_REQUESTED`, `closedAt = NOW()`. Allowed only on `ACTIVE` or `SUSPENDED` accounts. Sends account-closed email to the holder
 - **FR-ACC-10**: After an account is `CLOSED`, the holder may submit a new credit application (FR-APP-09). The new application is treated as a fresh application — a new `Account` with a new `accountId` is created on approval
+- **FR-ACC-11**: Upon account creation, three virtual card credentials are generated and stored on the account: `cardNumber` (randomly generated 16-digit string, zero-padded), `cardExpiry` (DATE — the first day of the month exactly 3 years after `createdAt`; displayed as MM/YY), and `cardCvv` (randomly generated 3-digit string, zero-padded). All three are returned in the `getAccount` response and included in the approval email (FR-EMAIL-02).
+- **FR-ACC-12**: `POST /accounts/:accountId/card/renew` — extends the card expiry by 3 years from the renewal date (`NOW()` + 3 years, stored as first of the renewal month + 36 months). Card number and CVV are unchanged. Requires a valid JWT. Returns the updated `Account`.
 
 ### 2.3 Transactions
 
 - **FR-TXN-01**: Mock charges are posted via API: `accountId`, `merchantName`, `amount`, `idempotencyKey`
-- **FR-TXN-02**: Before posting: validate account exists, account is `ACTIVE`, `amount > 0`, `amount <= availableCredit`
-- **FR-TXN-03**: On success: `Transaction` record created (type `CHARGE`), `currentBalance` incremented
-- **FR-TXN-04**: If `amount > availableCredit`: rejected with `INSUFFICIENT_CREDIT`
-- **FR-TXN-05**: Transactions are idempotent by `idempotencyKey` — replaying returns original transaction, no double-post
-- **FR-TXN-06**: After a successful charge, a `TRANSACTION_POSTED` event is published to SNS
-- **FR-TXN-07**: Transaction list endpoint returns all transactions for an account, sorted by `createdAt` descending, cursor-paginated
+- **FR-TXN-02**: Before posting: validate account exists, account is `ACTIVE`, `amount > 0`. If `amount > availableCredit`, the charge is **denied** — a `Transaction` record is created with `status = DENIED` and the account balance is unchanged (see FR-TXN-04). Otherwise a `Transaction` record is created with `status = PROCESSING`.
+- **FR-TXN-03**: On success (amount ≤ availableCredit): `Transaction` record created (`type = CHARGE`, `status = PROCESSING`), `currentBalance` incremented by `amount`.
+- **FR-TXN-04**: If `amount > availableCredit`: a `Transaction` record is created with `type = CHARGE`, `status = DENIED`; `currentBalance` is **not** changed. A `TRANSACTION_CREATED` SNS event is published so the cardholder receives a denial notification. Idempotency applies — replaying the same `idempotencyKey` returns the original `DENIED` transaction without re-creating it.
+- **FR-TXN-05**: Transactions are idempotent by `idempotencyKey` — replaying returns the original transaction (regardless of status), no double-post.
+- **FR-TXN-06**: After any charge transaction is created (PROCESSING or DENIED), a `TRANSACTION_CREATED` SNS event is published. When a `PROCESSING` charge is advanced to `POSTED` by the settlement job (FR-TXN-11), a `TRANSACTION_POSTED` SNS event is published. Payment transactions continue to publish `TRANSACTION_POSTED` immediately upon creation (FR-PAY-06 unchanged).
+- **FR-TXN-07**: Transaction list endpoint returns all transactions for an account (all statuses), sorted by `createdAt` descending, cursor-paginated.
+- **FR-TXN-08**: A **public** endpoint `POST /merchant/charge` accepts `cardNumber`, `cardCvv`, `merchantName`, `amount`, `idempotencyKey`. The service resolves the account by `cardNumber`, validates the CVV matches `cardCvv`, validates the card is not expired (`cardExpiry >= TODAY`), then applies the same PROCESSING/DENIED logic as FR-TXN-02/03/04 (account `ACTIVE`, `amount > 0`). No JWT is required — this route simulates a merchant payment terminal. If `amount > availableCredit`, creates a `DENIED` transaction (no balance change) and publishes `TRANSACTION_CREATED`. Otherwise creates a `PROCESSING` transaction, increments `currentBalance`, and publishes `TRANSACTION_CREATED`. Returns the created transaction record.
+- **FR-TXN-09**: Transaction status lifecycle. All transactions carry a `status` column (TEXT NOT NULL) and a `status_updated_at` column (TIMESTAMPTZ NOT NULL, set at creation and on every status change). Valid statuses: `PROCESSING | POSTED | DENIED | DISPUTED | DISPUTE_ACCEPTED | DISPUTE_DENIED`. Valid transitions: `PROCESSING → POSTED` (settlement job, after ≥ 24 h); `POSTED → DISPUTED` (cardholder API); `DISPUTED → DISPUTE_ACCEPTED | DISPUTE_DENIED` (resolution job). `DENIED` is terminal — no further transitions.
+- **FR-TXN-10**: Payment transactions (`type = PAYMENT`) are created with `status = POSTED` immediately. The 24-hour PROCESSING window and dispute lifecycle apply only to `CHARGE` transactions.
+- **FR-TXN-11**: Dispute endpoint: `POST /accounts/:accountId/transactions/:transactionId/dispute` — 🔒 JWT required. Allowed only on transactions where `status = POSTED`. On success: `status = DISPUTED`, `status_updated_at = NOW()`, publishes `TRANSACTION_DISPUTED` SNS event. Returns the updated `Transaction`. Errors: `TRANSACTION_NOT_FOUND` (404), `TRANSACTION_NOT_DISPUTABLE` (422 — status is not `POSTED`).
+- **FR-TXN-12**: Transaction settlement job: a daily cron at **3:00 AM EST (08:00 UTC)** triggers via EventBridge → enqueues a message to the `transaction-settlement` SQS queue. The consumer calls `settleTransactions()` in the service layer, which finds all `PROCESSING` `CHARGE` transactions where `created_at ≤ NOW() − 24 h`, advances each to `status = POSTED`, stamps `status_updated_at = NOW()`, and publishes a `TRANSACTION_POSTED` SNS event per settled transaction. Idempotent: already-`POSTED` transactions are excluded by the status filter.
+- **FR-TXN-13**: Dispute resolution job: a daily cron at **06:00 UTC** triggers via EventBridge → enqueues a message to the `dispute-resolution` SQS queue. The consumer calls `resolveDisputes()` in the service layer, which finds all `DISPUTED` transactions, randomly assigns each to `DISPUTE_ACCEPTED` or `DISPUTE_DENIED` (50/50 probability), stamps `status_updated_at = NOW()`, and publishes a `DISPUTE_RESOLVED` SNS event per resolved transaction. Idempotent: only `DISPUTED` transactions are selected; previously resolved transactions are excluded.
+- **FR-TXN-14**: Transactions have an optional `notes` field (TEXT, nullable). Notes may be set at transaction creation or on any status transition to provide human-readable context (e.g. `"Insufficient credit at time of charge"`, `"Dispute resolved in cardholder's favor"`). The field is returned in all transaction API responses. No endpoint currently accepts caller-supplied notes — notes are set exclusively by service layer logic.
 
 ### 2.4 Payments
 
@@ -155,14 +164,17 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 - **FR-NOTIF-01**: Each account has a `NotificationPreference` record auto-created at account creation with defaults: `transactionsEnabled: true`, `statementsEnabled: true`, `paymentRemindersEnabled: true`
 - **FR-NOTIF-02**: Preferences updated via `PATCH /accounts/:accountId/notifications`
 - **FR-NOTIF-03**: Preferences retrieved via `GET /accounts/:accountId/notifications`
-- **FR-NOTIF-04**: On `TRANSACTION_POSTED` event: check `transactionsEnabled` before sending email
+- **FR-NOTIF-04**: Transaction event routing (gated by `transactionsEnabled`):
+  - `TRANSACTION_CREATED` (new CHARGE, status PROCESSING or DENIED): send new-charge notification email (FR-EMAIL-11) if `transactionsEnabled`
+  - `TRANSACTION_POSTED` (payment created OR PROCESSING charge settled): send transaction-posted email (FR-EMAIL-03 for payments, FR-EMAIL-12 for settled charges) if `transactionsEnabled`
 - **FR-NOTIF-05**: On `STATEMENT_GENERATED` event: check `statementsEnabled` before sending email
 - **FR-NOTIF-06**: Email delivery failures are logged; they do not fail the originating operation
+- **FR-NOTIF-07**: Dispute and resolution emails are **always delivered** regardless of `transactionsEnabled`. `TRANSACTION_DISPUTED` → dispute confirmation email (FR-EMAIL-13); `DISPUTE_RESOLVED` → dispute resolution email (FR-EMAIL-14). These are user-action confirmations and cannot be suppressed by notification preferences.
 
 ### 2.7 Email Notifications
 
 - **FR-EMAIL-01**: Decline email: applicant's email; includes reason and note that they may reapply
-- **FR-EMAIL-02**: Approval email: applicant's email; includes credit limit, account ID, opening balance ($500), first payment due date, and setup instructions
+- **FR-EMAIL-02**: Approval email: applicant's email; includes credit limit, account ID (labelled "Account Setup Code"), opening balance ($500), first payment due date, card number, card expiry (MM/YY), card CVV, and setup instructions (link to `/setup`)
 - **FR-EMAIL-03**: Transaction email: account holder's email; merchant name, amount, new balance, available credit
 - **FR-EMAIL-04**: Statement-ready email: account holder's email; period, closing balance, minimum payment due, due date
 - **FR-EMAIL-05**: All emails sent via AWS SES; locally emulated by MiniStack (captured in logs)
@@ -171,6 +183,10 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 - **FR-EMAIL-08**: Auto-close email: account holder's email; confirms the account has been automatically closed due to non-payment, shows the final balance, and includes instructions to reapply for a new account
 - **FR-EMAIL-09**: User-close confirmation email: account holder's email; confirms the account has been closed at their request and includes instructions to reapply
 - **FR-EMAIL-10**: Application submitted acknowledgment email: applicant's email; includes confirmation code (applicationId) and link to check application status at `/apply/status`
+- **FR-EMAIL-11**: New charge notification email — sent on `TRANSACTION_CREATED` event for `CHARGE` transactions. Includes: merchant name, amount, status (`PROCESSING` or `DENIED`), reason if denied (insufficient credit), current balance, available credit after the transaction. Subject: "Transaction Processing — $X at [merchant]" or "Transaction Denied — $X at [merchant]" depending on status.
+- **FR-EMAIL-12**: Charge settled email — sent on `TRANSACTION_POSTED` event for `CHARGE` type transactions (i.e. when the settlement job advances a PROCESSING charge to POSTED). Includes: merchant name, amount, original transaction date (`createdAt`), posted date. Subject: "Transaction Posted — $X at [merchant]". Note: `TRANSACTION_POSTED` for `PAYMENT` type transactions continues to use FR-EMAIL-03.
+- **FR-EMAIL-13**: Dispute confirmation email — sent on `TRANSACTION_DISPUTED` event. Includes: transaction ID, merchant name, amount, dispute filed date. Informs cardholder the dispute is under review and a decision will be communicated. Subject: "Dispute Received — Under Review".
+- **FR-EMAIL-14**: Dispute resolution email — sent on `DISPUTE_RESOLVED` event. Includes: transaction ID, merchant name, amount, outcome (`DISPUTE_ACCEPTED` or `DISPUTE_DENIED`), resolution date, and outcome-specific messaging (accepted: credit will be restored if applicable; denied: original charge stands). Subject: "Dispute [Accepted / Denied] — $X at [merchant]".
 
 ### 2.8 Payment Due Schedule
 
@@ -215,12 +231,22 @@ To demonstrate end-to-end financial platform engineering: async workflows, event
 - **FR-FE-09**: **Payments page** (`/payments`) — payment form with an amount field (number input or "Pay Full Balance" toggle which sets `amount = "FULL"`); calls `POST /accounts/:id/payments`; shows success confirmation with the resolved amount; auth-required
 - **FR-FE-10**: **Statements page** (`/statements`) — list of statements sorted by period descending; clicking a statement shows its full detail view including transaction breakdown; on-demand generation via "Generate Statement" button calls `POST /accounts/:id/statements`; auth-required
 - **FR-FE-11**: **Notification settings page** (`/settings/notifications`) — three toggle switches for transaction notifications, statement notifications, and payment reminder notifications; any change calls `PATCH /accounts/:id/notifications` immediately; auth-required
-- **FR-FE-12**: **Account settings page** (`/settings/account`) — read-only display of account ID, credit limit, holder email, and creation date; "Close Account" button opens a confirmation modal before calling `DELETE /accounts/:accountId`; on success redirects to `/` with a farewell message; auth-required
+- **FR-FE-12**: **Account settings page** (`/settings/account`) — displays account ID, credit limit, holder email, creation date, card number, card expiry (MM/YY), and card CVV; "Renew Card" button calls `POST /accounts/:accountId/card/renew` and updates the displayed expiry date on success; "Close Account" button opens a confirmation modal before calling `DELETE /accounts/:accountId`; on success redirects to `/` with a farewell message; auth-required
 - **FR-FE-13**: **Auth guard** — all routes under `/dashboard`, `/transactions`, `/payments`, `/statements`, `/settings/**` are protected; unauthenticated users are redirected to `/login`; JWT expiry is checked client-side on each navigation
 - **FR-FE-14**: **Angular framework** — Angular 17+ with standalone components and the new control flow syntax; Angular Router for SPA navigation; Angular `HttpClient` with an auth interceptor that injects `Authorization: Bearer <jwt>` on all non-public requests; Angular Signals for reactive state management
 - **FR-FE-15**: **Styling** — Tailwind CSS for all styling; custom PixiCred fintech design theme (navy/blue palette, Inter font, card-based layout); responsive targeting mobile and desktop; no external component library
 - **FR-FE-16**: **Hosting** — `ng build --output-path dist/frontend` artifact deployed to S3 bucket `pixicred-{env}-frontend` with static website hosting; served via CloudFront distribution using the pre-provisioned ACM wildcard certificate; `pixicred.com` and `www.pixicred.com` Route 53 A-records alias to the CloudFront distribution
 - **FR-FE-17**: **Local development** — `ng serve` at `http://localhost:4200`; API calls proxied to `http://localhost:3000` via Angular's `proxy.conf.json` to avoid CORS during development
+- **FR-FE-18**: **Merchant page** (`/merchant`) — public route accessible only when **signed out** (authenticated users are redirected to `/dashboard`). Contains a charge form: card number (16-digit text input), CVV (3-digit text input), merchant name, amount (positive number), auto-generated `idempotencyKey` (UUID, hidden). Submits to `POST /merchant/charge`. On success: displays a confirmation panel with transaction ID, merchant name, amount charged, and transaction status (PROCESSING or DENIED). On error: displays the error code and message inline. Route is excluded from the auth guard.
+- **FR-FE-19**: **Transaction status display** — the transactions list (`/transactions`) shows a status badge for each transaction: `PROCESSING` (amber), `POSTED` (green), `DENIED` (red), `DISPUTED` (blue), `DISPUTE_ACCEPTED` (green), `DISPUTE_DENIED` (red). Auth-required.
+- **FR-FE-20**: **Dispute button** — on the transactions list (`/transactions`), each `POSTED` transaction shows a "Dispute" button. Clicking it calls `POST /accounts/:accountId/transactions/:transactionId/dispute` and updates the transaction status in the list to `DISPUTED`. A confirmation modal must be shown before the API call is made. Auth-required.
+
+### 2.12 Transaction Lifecycle Jobs
+
+- **FR-TXNJOB-01**: Transaction settlement job runs daily at **3:00 AM EST (08:00 UTC)** via EventBridge → `transaction-settlement` SQS queue. Advances all `PROCESSING` `CHARGE` transactions that are ≥ 24 hours old to `POSTED`. Publishes a `TRANSACTION_POSTED` SNS event per settled transaction. The cron is idempotent: settled transactions are excluded from future runs by the status filter.
+- **FR-TXNJOB-02**: An on-demand settlement trigger endpoint `POST /admin/transaction-settlement` enqueues a message to the `transaction-settlement` SQS queue directly. Returns `202 Accepted`. Body is ignored. Same Lambda consumer as the scheduled cron.
+- **FR-TXNJOB-03**: Dispute resolution job runs daily at **06:00 UTC** via EventBridge → `dispute-resolution` SQS queue. Selects all `DISPUTED` transactions and randomly resolves each to `DISPUTE_ACCEPTED` or `DISPUTE_DENIED` (50/50). Publishes a `DISPUTE_RESOLVED` SNS event per transaction. Idempotent: only `DISPUTED` transactions are ever selected.
+- **FR-TXNJOB-04**: An on-demand dispute resolution trigger endpoint `POST /admin/dispute-resolution` enqueues a message to the `dispute-resolution` SQS queue directly. Returns `202 Accepted`. Same Lambda consumer as the scheduled cron.
 
 ---
 
@@ -390,13 +416,41 @@ POST /applications
                       └─ APPROVED → update Application, create Account,
                                     create NotificationPreference, send approval email
 
-POST /accounts/:id/transactions
+POST /accounts/:id/transactions  (or POST /merchant/charge)
   → [API Lambda]
-      → [Service Lambda] postCharge() → creates Transaction, updates balance
-          → publishes SNS{TRANSACTION_POSTED}
+      → [Service Lambda] postCharge() → creates Transaction (PROCESSING or DENIED), updates balance if PROCESSING
+          → publishes SNS{TRANSACTION_CREATED}
               → SQS notification-queue
                   → [notification Lambda]
-                      → [Service Lambda] sendTransactionEmail() (if enabled)
+                      → [Service Lambda] sendChargeCreatedEmail() (if transactionsEnabled)
+
+POST /accounts/:id/transactions/:id/dispute
+  → [API Lambda]
+      → [Service Lambda] disputeTransaction() → status → DISPUTED
+          → publishes SNS{TRANSACTION_DISPUTED}
+              → SQS notification-queue
+                  → [notification Lambda]
+                      → [Service Lambda] sendDisputeConfirmationEmail() (always — not preference-gated)
+
+EventBridge (daily 08:00 UTC) — OR — POST /admin/transaction-settlement
+  → SQS transaction-settlement-queue
+      → [transaction-settlement Lambda]
+          → [Service Lambda] settleTransactions()
+              → finds PROCESSING charges ≥ 24h old → status → POSTED
+                  → publishes SNS{TRANSACTION_POSTED} per settled transaction
+                      → SQS notification-queue
+                          → [notification Lambda]
+                              → [Service Lambda] sendChargePostedEmail() (if transactionsEnabled)
+
+EventBridge (daily 06:00 UTC) — OR — POST /admin/dispute-resolution
+  → SQS dispute-resolution-queue
+      → [dispute-resolution Lambda]
+          → [Service Lambda] resolveDisputes()
+              → finds DISPUTED transactions → randomly → DISPUTE_ACCEPTED | DISPUTE_DENIED
+                  → publishes SNS{DISPUTE_RESOLVED} per resolved transaction
+                      → SQS notification-queue
+                          → [notification Lambda]
+                              → [Service Lambda] sendDisputeResolutionEmail() (always — not preference-gated)
 
 EventBridge (weekly | monthly)
   → SQS statement-gen-queue
@@ -478,15 +532,21 @@ tags = {
 | **Lambda** | notification | SQS consumer: sends emails |
 | **Lambda** | statement-gen | SQS consumer: generates statements |
 | **Lambda** | billing-lifecycle | SQS consumer: runs daily billing lifecycle (reminders + auto-close) |
+| **Lambda** | transaction-settlement | SQS consumer: advances PROCESSING charges ≥ 24h to POSTED |
+| **Lambda** | dispute-resolution | SQS consumer: randomly resolves DISPUTED transactions |
 | **SQS** | credit-check-queue + DLQ | Async credit check jobs |
 | **SQS** | notification-queue + DLQ | Async email delivery |
 | **SQS** | statement-gen-queue + DLQ | Scheduled + on-demand statement jobs |
 | **SQS** | billing-lifecycle-queue + DLQ | Daily cron + on-demand billing lifecycle jobs |
+| **SQS** | transaction-settlement-queue + DLQ | Daily cron + on-demand settlement jobs |
+| **SQS** | dispute-resolution-queue + DLQ | Daily cron + on-demand dispute resolution jobs |
 | **SNS** | events topic | Fan-out from service layer |
 | **RDS (Postgres)** | pixicred-{env}-rds | Persistent data store |
 | **SES** | no-reply@pixicred.com | Transactional email |
 | **EventBridge** | weekly-stmt + monthly-stmt | Statement generation schedules |
 | **EventBridge** | daily-billing-lifecycle | Daily 08:00 UTC billing lifecycle trigger |
+| **EventBridge** | daily-transaction-settlement | Daily 08:00 UTC transaction settlement trigger (3 AM EST) |
+| **EventBridge** | daily-dispute-resolution | Daily 06:00 UTC dispute resolution trigger |
 | **Secrets Manager** | pixicred-{env}-secrets | DB credentials + JWT signing secret |
 | **CloudWatch Logs** | per-Lambda log groups | Structured logs, 14-day retention |
 | **S3** | pixicred-{env}-tf-state | Terraform remote state |
@@ -507,6 +567,8 @@ tags = {
 | notification | 256 MB | 60s | SQS |
 | statement-gen | 512 MB | 300s | SQS |
 | billing-lifecycle | 256 MB | 120s | SQS |
+| transaction-settlement | 256 MB | 120s | SQS |
+| dispute-resolution | 256 MB | 120s | SQS |
 
 ### 5.5 SQS Queue Configuration
 
@@ -516,6 +578,8 @@ tags = {
 | notification | 120s | 3 | notification-dlq |
 | statement-gen | 600s | 2 | statement-gen-dlq |
 | billing-lifecycle | 180s | 2 | billing-lifecycle-dlq |
+| transaction-settlement | 180s | 2 | transaction-settlement-dlq |
+| dispute-resolution | 180s | 2 | dispute-resolution-dlq |
 
 ### 5.6 RDS Configuration
 
@@ -716,6 +780,9 @@ type ServiceAction =
   // Transactions
   | { action: 'postCharge';                   payload: PostChargeInput }
   | { action: 'getTransactions';              payload: GetTransactionsInput }
+  | { action: 'disputeTransaction';           payload: { accountId: string; transactionId: string } }
+  | { action: 'settleTransactions';           payload: Record<string, never> }
+  | { action: 'resolveDisputes';              payload: Record<string, never> }
   // Payments
   | { action: 'postPayment';                  payload: PostPaymentInput }
   // Statements
@@ -730,6 +797,10 @@ type ServiceAction =
   | { action: 'sendDeclineEmail';             payload: { applicationId: string } }
   | { action: 'sendApprovalEmail';            payload: { applicationId: string } }
   | { action: 'sendTransactionEmail';         payload: { transactionId: string } }
+  | { action: 'sendChargeCreatedEmail';       payload: { transactionId: string } }
+  | { action: 'sendChargePostedEmail';        payload: { transactionId: string } }
+  | { action: 'sendDisputeConfirmationEmail'; payload: { transactionId: string } }
+  | { action: 'sendDisputeResolutionEmail';   payload: { transactionId: string } }
   | { action: 'sendStatementEmail';           payload: { statementId: string } }
   | { action: 'sendPaymentDueReminderEmail';  payload: { accountId: string } }
   | { action: 'sendAutoCloseEmail';           payload: { accountId: string } }
@@ -826,16 +897,23 @@ CREATE INDEX idx_pds_satisfied   ON payment_due_schedules(satisfied);
 #### `transactions`
 ```sql
 CREATE TABLE transactions (
-  transaction_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id       UUID NOT NULL REFERENCES accounts(account_id),
-  type             TEXT NOT NULL,        -- CHARGE | PAYMENT
-  merchant_name    TEXT,                 -- null for PAYMENT type
-  amount           NUMERIC(10,2) NOT NULL,
-  idempotency_key  TEXT NOT NULL,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  transaction_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id        UUID NOT NULL REFERENCES accounts(account_id),
+  type              TEXT NOT NULL,        -- CHARGE | PAYMENT
+  merchant_name     TEXT,                 -- null for PAYMENT type
+  amount            NUMERIC(10,2) NOT NULL,
+  idempotency_key   TEXT NOT NULL,
+  status            TEXT NOT NULL DEFAULT 'PROCESSING',
+  -- CHARGE: PROCESSING | POSTED | DENIED | DISPUTED | DISPUTE_ACCEPTED | DISPUTE_DENIED
+  -- PAYMENT: always POSTED
+  status_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  notes             TEXT,                 -- optional human-readable context for current status
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_transactions_account_id ON transactions(account_id);
 CREATE UNIQUE INDEX idx_transactions_idempotency ON transactions(account_id, idempotency_key);
+CREATE INDEX idx_transactions_status ON transactions(status);
+CREATE INDEX idx_transactions_status_created ON transactions(status, created_at);
 ```
 
 #### `statements`
@@ -927,8 +1005,9 @@ CREATE INDEX idx_portal_accounts_email ON portal_accounts(email);
 #### Transactions 🔒 JWT required
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/accounts/:accountId/transactions` | Post mock charge |
-| `GET` | `/accounts/:accountId/transactions` | List transactions (paginated) |
+| `POST` | `/accounts/:accountId/transactions` | Post mock charge (returns PROCESSING or DENIED transaction) |
+| `GET` | `/accounts/:accountId/transactions` | List transactions (all statuses, paginated) |
+| `POST` | `/accounts/:accountId/transactions/:transactionId/dispute` | Dispute a POSTED transaction |
 
 #### Payments 🔒 JWT required
 | Method | Path | Description |
@@ -952,6 +1031,8 @@ CREATE INDEX idx_portal_accounts_email ON portal_accounts(email);
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/admin/billing-lifecycle` | Trigger billing lifecycle job on-demand (optional body: `{ "lookaheadDays": N }`) |
+| `POST` | `/admin/transaction-settlement` | Trigger transaction settlement job on-demand (no body required) |
+| `POST` | `/admin/dispute-resolution` | Trigger dispute resolution job on-demand (no body required) |
 
 ### 8.4 Error Codes
 
@@ -971,6 +1052,8 @@ CREATE INDEX idx_portal_accounts_email ON portal_accounts(email);
 | `INVALID_CREDENTIALS` | 401 | Wrong email or password on login |
 | `PORTAL_ACCOUNT_EXISTS` | 409 | Portal account already registered for this accountId |
 | `PORTAL_ACCOUNT_NOT_ELIGIBLE` | 422 | Account's application is not APPROVED; cannot register portal access |
+| `TRANSACTION_NOT_FOUND` | 404 | No transaction with given ID on this account |
+| `TRANSACTION_NOT_DISPUTABLE` | 422 | Transaction status is not POSTED; cannot dispute |
 | `INTERNAL_ERROR` | 500 | Unhandled server error |
 
 ---

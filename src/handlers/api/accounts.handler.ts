@@ -41,6 +41,20 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   log('info', `${method} ${path}`, 0, { requestId });
 
   try {
+    // POST /accounts/:accountId/card/renew
+    const renewMatch = /^\/accounts\/([^/]+)\/card\/renew$/.exec(path);
+    if (renewMatch && method === 'POST') {
+      const accountId = renewMatch[1] as string;
+      const { JWT_SECRET } = await getConfig();
+      validateBearerToken(event.headers['authorization'], accountId, JWT_SECRET);
+      const account = await serviceClient.invoke<Account>({
+        action: 'renewCard',
+        payload: { accountId },
+      });
+      log('info', `${method} ${path}`, Date.now() - start, { requestId, status: 201 });
+      return { statusCode: 201, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: account }) };
+    }
+
     const accountMatch = /^\/accounts\/([^/]+)$/.exec(path);
 
     if (accountMatch) {

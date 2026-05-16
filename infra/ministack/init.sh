@@ -13,7 +13,7 @@ until curl -sf "${ENDPOINT}/_ministack/health" > /dev/null 2>&1; do
 done
 echo "MiniStack is ready."
 
-QUEUES=(credit-check notifications statement-gen billing-lifecycle)
+QUEUES=(credit-check notifications statement-gen billing-lifecycle dispute-resolution transaction-settlement)
 
 # Create DLQs first (referenced in main queue redrive policies)
 for QUEUE in "${QUEUES[@]}"; do

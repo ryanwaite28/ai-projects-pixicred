@@ -3,7 +3,7 @@ import { getTransactionByIdempotencyKey } from '../db/queries/transaction.querie
 import { getAccountById } from '../db/queries/account.queries.js';
 import { PixiCredError } from '../lib/errors.js';
 import { assertUuid } from '../lib/validate.js';
-import type { Transaction, ServiceClients, PostPaymentInput } from '../types/index.js';
+import type { Transaction, TransactionStatus, ServiceClients, PostPaymentInput } from '../types/index.js';
 
 export const computeMinimumPayment = (currentBalance: number): number =>
   Math.max(25, currentBalance * 0.02);
@@ -40,6 +40,9 @@ export async function postPayment(
     merchantName: string | null;
     amount: { toNumber(): number };
     idempotencyKey: string;
+    status: string;
+    statusUpdatedAt: Date;
+    notes: string | null;
     createdAt: Date;
   };
 
@@ -51,6 +54,7 @@ export async function postPayment(
         merchantName: null,
         amount: resolvedAmount,
         idempotencyKey: input.idempotencyKey,
+        status: 'POSTED',
       },
     }) as typeof txnRow;
     await tx.account.update({
@@ -72,6 +76,9 @@ export async function postPayment(
     merchantName: null,
     amount: txnRow.amount.toNumber(),
     idempotencyKey: txnRow.idempotencyKey,
+    status: txnRow.status as TransactionStatus,
+    statusUpdatedAt: txnRow.statusUpdatedAt,
+    notes: txnRow.notes ?? null,
     createdAt: txnRow.createdAt,
   };
 

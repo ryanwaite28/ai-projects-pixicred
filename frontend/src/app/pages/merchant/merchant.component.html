@@ -1,0 +1,170 @@
+<div class="pxc-page max-w-lg">
+
+  <!-- Heading -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-1" style="color: var(--color-pxc-navy)">Merchant Demo</h1>
+    <p class="text-sm" style="color: var(--color-pxc-muted)">Simulate a card purchase using PixiCred card credentials.</p>
+  </div>
+
+  @if (!charged()) {
+    <div class="pxc-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-5">
+
+        <!-- Card Number -->
+        <div>
+          <label for="cardNumber" class="pxc-label">Card Number</label>
+          <input id="cardNumber" type="text" formControlName="cardNumber"
+            inputmode="numeric" maxlength="16" placeholder="1234567890123456"
+            [class.error]="form.controls.cardNumber.invalid && form.controls.cardNumber.touched"
+            class="pxc-input font-mono tracking-widest" />
+          @if (form.controls.cardNumber.invalid && form.controls.cardNumber.touched) {
+            <p class="pxc-field-error">Enter the 16-digit card number.</p>
+          }
+        </div>
+
+        <!-- CVV -->
+        <div>
+          <label for="cardCvv" class="pxc-label">CVV</label>
+          <input id="cardCvv" type="password" formControlName="cardCvv"
+            inputmode="numeric" maxlength="3" placeholder="123"
+            [class.error]="form.controls.cardCvv.invalid && form.controls.cardCvv.touched"
+            class="pxc-input font-mono tracking-widest" />
+          @if (form.controls.cardCvv.invalid && form.controls.cardCvv.touched) {
+            <p class="pxc-field-error">Enter the 3-digit CVV.</p>
+          }
+        </div>
+
+        <!-- Merchant Name -->
+        <div>
+          <label for="merchantName" class="pxc-label">Merchant Name</label>
+          <input id="merchantName" type="text" formControlName="merchantName"
+            placeholder="Acme Coffee"
+            [class.error]="form.controls.merchantName.invalid && form.controls.merchantName.touched"
+            class="pxc-input" />
+          @if (form.controls.merchantName.invalid && form.controls.merchantName.touched) {
+            <p class="pxc-field-error">Merchant name is required.</p>
+          }
+        </div>
+
+        <!-- Amount -->
+        <div>
+          <label for="amount" class="pxc-label">Amount (USD)</label>
+          <input id="amount" type="number" formControlName="amount"
+            step="0.01" min="0.01" placeholder="25.00"
+            [class.error]="form.controls.amount.invalid && form.controls.amount.touched"
+            class="pxc-input" />
+          @if (form.controls.amount.invalid && form.controls.amount.touched) {
+            <p class="pxc-field-error">
+              @if (form.controls.amount.hasError('required')) { Amount is required. }
+              @else { Amount must be at least $0.01. }
+            </p>
+          }
+        </div>
+
+        <!-- Error banner -->
+        @if (errorMessage()) {
+          <div class="pxc-alert error">
+            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <div class="pxc-divider mb-0"></div>
+
+        <button type="submit" class="pxc-btn-primary w-full" [disabled]="submitting()">
+          @if (submitting()) {
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Processing…
+          } @else {
+            Charge Card
+          }
+        </button>
+
+      </form>
+    </div>
+
+  } @else {
+    <!-- Confirmation panel -->
+    <div class="pxc-card">
+      <div class="flex items-center gap-3 mb-6">
+        @if (chargedTransaction()!.status === 'PROCESSING') {
+          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+               style="background-color: rgba(39,174,96,0.12)">
+            <svg class="w-5 h-5" fill="none" stroke="#27ae60" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold" style="color: var(--color-pxc-navy)">Charge Submitted</h2>
+            <p class="text-sm" style="color: var(--color-pxc-muted)">Your charge is being processed and will post within 24 hours.</p>
+          </div>
+        } @else if (chargedTransaction()!.status === 'DENIED') {
+          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+               style="background-color: rgba(220,38,38,0.10)">
+            <svg class="w-5 h-5" fill="none" stroke="#dc2626" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold" style="color: #dc2626">Charge Denied</h2>
+            <p class="text-sm" style="color: var(--color-pxc-muted)">This charge was denied — insufficient credit available.</p>
+          </div>
+        } @else {
+          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+               style="background-color: rgba(39,174,96,0.12)">
+            <svg class="w-5 h-5" fill="none" stroke="#27ae60" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold" style="color: var(--color-pxc-navy)">Charge Approved</h2>
+            <p class="text-sm" style="color: var(--color-pxc-muted)">Transaction completed successfully.</p>
+          </div>
+        }
+      </div>
+
+      <dl class="space-y-3">
+        <div class="flex justify-between text-sm">
+          <dt style="color: var(--color-pxc-muted)">Transaction ID</dt>
+          <dd class="font-mono text-xs truncate max-w-[180px]" style="color: var(--color-pxc-navy)">
+            {{ chargedTransaction()!.transactionId }}
+          </dd>
+        </div>
+        <div class="pxc-divider my-0"></div>
+        <div class="flex justify-between text-sm">
+          <dt style="color: var(--color-pxc-muted)">Status</dt>
+          <dd style="color: var(--color-pxc-navy)">{{ chargedTransaction()!.status }}</dd>
+        </div>
+        <div class="pxc-divider my-0"></div>
+        <div class="flex justify-between text-sm">
+          <dt style="color: var(--color-pxc-muted)">Amount</dt>
+          <dd class="font-semibold" style="color: var(--color-pxc-navy)">
+            {{ chargedTransaction()!.amount | currency }}
+          </dd>
+        </div>
+        <div class="pxc-divider my-0"></div>
+        <div class="flex justify-between text-sm">
+          <dt style="color: var(--color-pxc-muted)">Merchant</dt>
+          <dd style="color: var(--color-pxc-navy)">{{ chargedTransaction()!.merchantName }}</dd>
+        </div>
+        <div class="pxc-divider my-0"></div>
+        <div class="flex justify-between text-sm">
+          <dt style="color: var(--color-pxc-muted)">Date</dt>
+          <dd style="color: var(--color-pxc-navy)">{{ chargedTransaction()!.createdAt | date:'medium' }}</dd>
+        </div>
+      </dl>
+
+      <div class="mt-6">
+        <button (click)="reset()" class="pxc-btn-ghost w-full text-sm">Make Another Charge</button>
+      </div>
+    </div>
+  }
+
+</div>

@@ -59,6 +59,9 @@ const paymentTxn: Transaction = {
   merchantName: null,
   amount: 100,
   idempotencyKey: IDEM_KEY,
+  status: 'POSTED',
+  statusUpdatedAt: new Date('2026-05-10T14:00:00Z'),
+  notes: null,
   createdAt: new Date('2026-05-10T14:00:00Z'),
 };
 

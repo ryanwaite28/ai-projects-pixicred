@@ -28,6 +28,9 @@ async function seedAccount() {
     holderEmail: 'tx@example.com',
     creditLimit: 5000,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
 }
 
@@ -40,6 +43,7 @@ describe('createTransaction', () => {
       merchantName: 'ACME Corp',
       amount: 150.00,
       idempotencyKey: 'key-001',
+      status: 'PROCESSING',
     });
     expect(tx.type).toBe('CHARGE');
     expect(tx.merchantName).toBe('ACME Corp');
@@ -57,6 +61,7 @@ describe('createTransaction', () => {
       type: 'PAYMENT',
       amount: 200.00,
       idempotencyKey: 'key-002',
+      status: 'POSTED',
     });
     expect(tx.type).toBe('PAYMENT');
     expect(tx.merchantName).toBeNull();
@@ -72,6 +77,7 @@ describe('getTransactionByIdempotencyKey', () => {
       type: 'CHARGE',
       amount: 50,
       idempotencyKey: 'idem-abc',
+      status: 'PROCESSING',
     });
     const found = await getTransactionByIdempotencyKey(prisma, account.accountId, 'idem-abc');
     expect(found).not.toBeNull();
@@ -91,6 +97,7 @@ describe('getTransactionByIdempotencyKey', () => {
       type: 'CHARGE',
       amount: 50,
       idempotencyKey: 'idem-xyz',
+      status: 'PROCESSING',
     });
     const result = await getTransactionByIdempotencyKey(prisma, 'aaaaaaaa-0000-0000-0000-000000000000', 'idem-xyz');
     expect(result).toBeNull();
@@ -100,9 +107,9 @@ describe('getTransactionByIdempotencyKey', () => {
 describe('getTransactionsByAccountId', () => {
   it('returns transactions ordered by createdAt DESC', async () => {
     const account = await seedAccount();
-    await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: 10, idempotencyKey: 'k1' });
-    await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: 20, idempotencyKey: 'k2' });
-    await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: 30, idempotencyKey: 'k3' });
+    await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: 10, idempotencyKey: 'k1', status: 'PROCESSING' });
+    await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: 20, idempotencyKey: 'k2', status: 'PROCESSING' });
+    await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: 30, idempotencyKey: 'k3', status: 'PROCESSING' });
 
     const txs = await getTransactionsByAccountId(prisma, { accountId: account.accountId });
     expect(txs.length).toBe(3);
@@ -115,7 +122,7 @@ describe('getTransactionsByAccountId', () => {
   it('respects limit', async () => {
     const account = await seedAccount();
     for (let i = 0; i < 5; i++) {
-      await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: i + 1, idempotencyKey: `lk-${i}` });
+      await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: i + 1, idempotencyKey: `lk-${i}`, status: 'PROCESSING' });
     }
     const txs = await getTransactionsByAccountId(prisma, { accountId: account.accountId, limit: 3 });
     expect(txs.length).toBe(3);
@@ -130,7 +137,7 @@ describe('getTransactionsByAccountId', () => {
   it('cursor pagination skips the cursor item', async () => {
     const account = await seedAccount();
     for (let i = 0; i < 4; i++) {
-      await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: i + 1, idempotencyKey: `pg-${i}` });
+      await createTransaction(prisma, { accountId: account.accountId, type: 'CHARGE', amount: i + 1, idempotencyKey: `pg-${i}`, status: 'PROCESSING' });
     }
     const page1 = await getTransactionsByAccountId(prisma, { accountId: account.accountId, limit: 2 });
     expect(page1.length).toBe(2);
@@ -153,6 +160,7 @@ describe('getTransactionById', () => {
       type: 'CHARGE',
       amount: 75,
       idempotencyKey: 'byid-key',
+      status: 'PROCESSING',
     });
     const found = await getTransactionById(prisma, tx.transactionId);
     expect(found).not.toBeNull();

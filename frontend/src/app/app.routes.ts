@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { publicGuard } from './guards/public.guard';
 
 export const routes: Routes = [
   {
@@ -77,6 +78,12 @@ export const routes: Routes = [
         (m) => m.SettingsAccountComponent,
       ),
     canActivate: [authGuard],
+  },
+  {
+    path: 'merchant',
+    loadComponent: () =>
+      import('./pages/merchant/merchant.component').then((m) => m.MerchantComponent),
+    canActivate: [publicGuard],
   },
   { path: '**', redirectTo: '' },
 ];

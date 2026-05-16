@@ -1,6 +1,7 @@
 # Spec: Data Model — Prisma Schema & Type Definitions
-**FR references**: FR-APP-01, FR-APP-02, FR-APP-03, FR-ACC-02, FR-ACC-03, FR-ACC-06, FR-ACC-07, FR-ACC-08, FR-DUE-01, FR-DUE-02, FR-TXN-01, FR-STMT-03, FR-NOTIF-01, FR-PAY-01, FR-BILL-07
+**FR references**: FR-APP-01, FR-APP-02, FR-APP-03, FR-ACC-02, FR-ACC-03, FR-ACC-06, FR-ACC-07, FR-ACC-08, FR-ACC-11, FR-DUE-01, FR-DUE-02, FR-TXN-01, FR-STMT-03, FR-NOTIF-01, FR-PAY-01, FR-BILL-07
 **Status**: ✅ Implemented
+**Modified in Phase 11a**: card fields (`cardNumber`, `cardExpiry`, `cardCvv`) added to `Account` model and interface; migration `add_card_fields` generated
 
 ---
 
@@ -71,6 +72,9 @@ model Account {
   closeReason    String?   @map("close_reason")
   closedAt       DateTime? @map("closed_at") @db.Timestamptz(6)
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  cardNumber     String    @unique @map("card_number")
+  cardExpiry     DateTime  @map("card_expiry") @db.Date
+  cardCvv        String    @map("card_cvv")
 
   application             Application             @relation(fields: [applicationId], references: [applicationId])
   paymentDueSchedule      PaymentDueSchedule?
@@ -182,6 +186,10 @@ export interface Account {
   closeReason:     CloseReason | null;
   closedAt:        Date | null;
   createdAt:       Date;
+  // Added Phase 11a (FR-ACC-11)
+  cardNumber:      string;
+  cardExpiry:      string;  // ISO date YYYY-MM-DD; display as MM/YY in frontend
+  cardCvv:         string;
 }
 
 export interface PaymentDueSchedule {
@@ -237,3 +245,5 @@ export interface NotificationPreference {
 - [x] All TypeScript interfaces in `src/types/index.ts` compile under strict mode with no implicit `any`
 - [x] Spec status updated to ✅ Implemented
 - [x] IMPLEMENTATION_PLAN.md Phase 1a row marked complete
+- [x] Phase 11a: `cardNumber @unique`, `cardExpiry @db.Date`, `cardCvv` added to `Account` prisma model; migration `add_card_fields` generated and deployed
+- [x] Phase 11a: `Account` TypeScript interface includes `cardNumber: string`, `cardExpiry: string`, `cardCvv: string`

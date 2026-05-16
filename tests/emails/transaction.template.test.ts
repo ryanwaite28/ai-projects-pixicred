@@ -14,6 +14,9 @@ const account: Account = {
   closeReason: null,
   closedAt: null,
   createdAt: new Date('2026-05-01T00:00:00Z'),
+  cardNumber: '1234567890123456',
+  cardExpiry: '2029-06-01',
+  cardCvv: '123',
 };
 
 const transaction: Transaction = {
@@ -23,6 +26,9 @@ const transaction: Transaction = {
   merchantName: 'Amazon',
   amount: 100,
   idempotencyKey: '00000000-0000-4000-8000-000000000004',
+  status: 'PROCESSING',
+  statusUpdatedAt: new Date('2026-05-10T14:00:00Z'),
+  notes: null,
   createdAt: new Date('2026-05-10T14:00:00Z'),
 };
 

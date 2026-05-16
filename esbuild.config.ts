@@ -11,20 +11,23 @@ export const baseConfig: esbuild.BuildOptions = {
 };
 
 const lambdaEntries: Array<[string, string]> = [
-  ['api-applications',  'src/handlers/api/applications.handler.ts'],
-  ['api-accounts',      'src/handlers/api/accounts.handler.ts'],
-  ['api-transactions',  'src/handlers/api/transactions.handler.ts'],
-  ['api-payments',      'src/handlers/api/payments.handler.ts'],
-  ['api-statements',    'src/handlers/api/statements.handler.ts'],
-  ['api-notifications', 'src/handlers/api/notifications.handler.ts'],
-  ['api-auth',          'src/handlers/api/auth.handler.ts'],
-  ['api-admin',         'src/handlers/api/admin.handler.ts'],
-  ['api-health',        'src/handlers/api/health.handler.ts'],
-  ['service',           'src/handlers/service/service.handler.ts'],
-  ['credit-check',      'src/handlers/sqs/credit-check.handler.ts'],
-  ['notification',      'src/handlers/sqs/notification.handler.ts'],
-  ['statement-gen',     'src/handlers/sqs/statement-gen.handler.ts'],
-  ['billing-lifecycle', 'src/handlers/sqs/billing-lifecycle.handler.ts'],
+  ['api-applications',      'src/handlers/api/applications.handler.ts'],
+  ['api-accounts',          'src/handlers/api/accounts.handler.ts'],
+  ['api-transactions',      'src/handlers/api/transactions.handler.ts'],
+  ['api-payments',          'src/handlers/api/payments.handler.ts'],
+  ['api-statements',        'src/handlers/api/statements.handler.ts'],
+  ['api-notifications',     'src/handlers/api/notifications.handler.ts'],
+  ['api-auth',              'src/handlers/api/auth.handler.ts'],
+  ['api-admin',             'src/handlers/api/admin.handler.ts'],
+  ['api-merchant',          'src/handlers/api/merchant.handler.ts'],
+  ['api-health',            'src/handlers/api/health.handler.ts'],
+  ['service',               'src/handlers/service/service.handler.ts'],
+  ['credit-check',          'src/handlers/sqs/credit-check.handler.ts'],
+  ['notification',          'src/handlers/sqs/notification.handler.ts'],
+  ['statement-gen',         'src/handlers/sqs/statement-gen.handler.ts'],
+  ['billing-lifecycle',     'src/handlers/sqs/billing-lifecycle.handler.ts'],
+  ['dispute-resolution',    'src/handlers/sqs/dispute-resolution.handler.ts'],
+  ['transaction-settlement','src/handlers/sqs/transaction-settlement.handler.ts'],
 ];
 
 const localEntries: Array<[string, string]> = [

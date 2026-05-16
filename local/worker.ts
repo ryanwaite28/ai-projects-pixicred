@@ -96,6 +96,22 @@ const queues: QueueConfig[] = [
       await deleteMessage(queueUrl, receiptHandle);
     },
   },
+  {
+    name: 'dispute-resolution',
+    url: () => process.env['DISPUTE_RESOLUTION_QUEUE_URL'] ?? '',
+    async process(_body, receiptHandle, queueUrl) {
+      await dispatch({ action: 'resolveDisputes', payload: {} });
+      await deleteMessage(queueUrl, receiptHandle);
+    },
+  },
+  {
+    name: 'transaction-settlement',
+    url: () => process.env['TRANSACTION_SETTLEMENT_QUEUE_URL'] ?? '',
+    async process(_body, receiptHandle, queueUrl) {
+      await dispatch({ action: 'settleTransactions', payload: {} });
+      await deleteMessage(queueUrl, receiptHandle);
+    },
+  },
 ];
 
 let running = true;

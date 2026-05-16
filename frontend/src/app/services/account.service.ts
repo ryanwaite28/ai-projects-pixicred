@@ -6,6 +6,8 @@ import { environment } from '../../environments/environment';
 
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
 export type TransactionType = 'CHARGE' | 'PAYMENT';
+export type TransactionStatus =
+  'PROCESSING' | 'POSTED' | 'DENIED' | 'DISPUTED' | 'DISPUTE_ACCEPTED' | 'DISPUTE_DENIED';
 
 export interface Account {
   accountId: string;
@@ -19,11 +21,15 @@ export interface Account {
 }
 
 export interface Transaction {
-  transactionId: string;
-  type: TransactionType;
-  merchantName: string | null;
-  amount: number;
-  createdAt: string;
+  transactionId:   string;
+  accountId:       string;
+  type:            TransactionType;
+  merchantName:    string | null;
+  amount:          number;
+  idempotencyKey:  string;
+  status:          TransactionStatus;
+  statusUpdatedAt: string;
+  createdAt:       string;
 }
 
 export interface PaymentResult {
@@ -101,6 +107,15 @@ export class AccountService {
   generateStatement(accountId: string): Observable<Statement> {
     return this.http
       .post<{ data: Statement }>(`${this.base}/accounts/${accountId}/statements`, {})
+      .pipe(map((r) => r.data));
+  }
+
+  disputeTransaction(accountId: string, transactionId: string): Observable<Transaction> {
+    return this.http
+      .post<{ data: Transaction }>(
+        `${this.base}/accounts/${accountId}/transactions/${transactionId}/dispute`,
+        {},
+      )
       .pipe(map((r) => r.data));
   }
 }

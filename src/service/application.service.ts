@@ -8,6 +8,7 @@ import {
 import {
   createAccount,
 } from '../db/queries/account.queries.js';
+import { generateCardNumber, generateCardExpiry, generateCardCvv } from '../lib/card.js';
 import { createPaymentDueSchedule } from '../db/queries/payment-due-schedule.queries.js';
 import { createNotificationPreferences } from '../db/queries/notification.queries.js';
 import { PixiCredError } from '../lib/errors.js';
@@ -115,6 +116,10 @@ export async function runCreditCheck(
   const createdAt = updatedApp?.createdAt ?? application.createdAt;
   const paymentDueDate = computePaymentDueDate(createdAt);
 
+  const cardNumber = generateCardNumber();
+  const cardExpiry = generateCardExpiry(new Date());
+  const cardCvv = generateCardCvv();
+
   let accountId: string;
   await prisma.$transaction(async (tx) => {
     const account = await createAccount(tx as PrismaClient, {
@@ -122,6 +127,9 @@ export async function runCreditCheck(
       holderEmail: application.email,
       creditLimit,
       paymentDueDate,
+      cardNumber,
+      cardExpiry,
+      cardCvv,
     });
     accountId = account.accountId;
     await createPaymentDueSchedule(tx as PrismaClient, account.accountId, paymentDueDate);

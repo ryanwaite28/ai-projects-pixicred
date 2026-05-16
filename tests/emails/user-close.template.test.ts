@@ -14,6 +14,9 @@ const account: Account = {
   closeReason: 'USER_REQUESTED',
   closedAt: new Date('2026-05-10T14:30:00Z'),
   createdAt: new Date('2026-05-01T00:00:00Z'),
+  cardNumber: '1234567890123456',
+  cardExpiry: '2029-06-01',
+  cardCvv: '123',
 };
 
 beforeEach(() => {

@@ -30,32 +30,48 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   log('info', `${method} ${path}`, 0, { requestId });
 
   try {
-    if (method !== 'POST' || path !== '/admin/billing-lifecycle') {
-      log('warn', `${method} ${path}`, Date.now() - start, { requestId, status: 404 });
-      return {
-        statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Route not found' } }),
-      };
-    }
+    if (method === 'POST' && path === '/admin/billing-lifecycle') {
+      const body = JSON.parse(event.body ?? '{}') as Record<string, unknown>;
+      let lookaheadDays = 7;
 
-    const body = JSON.parse(event.body ?? '{}') as Record<string, unknown>;
-    let lookaheadDays = 7;
-
-    if (body['lookaheadDays'] !== undefined) {
-      const raw = body['lookaheadDays'];
-      if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 1) {
-        log('warn', `${method} ${path}`, Date.now() - start, { requestId, status: 400, error: 'invalid lookaheadDays' });
-        return badRequest('lookaheadDays must be a positive integer');
+      if (body['lookaheadDays'] !== undefined) {
+        const raw = body['lookaheadDays'];
+        if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 1) {
+          log('warn', `${method} ${path}`, Date.now() - start, { requestId, status: 400, error: 'invalid lookaheadDays' });
+          return badRequest('lookaheadDays must be a positive integer');
+        }
+        lookaheadDays = raw;
       }
-      lookaheadDays = raw;
+
+      const queueUrl = process.env['BILLING_LIFECYCLE_QUEUE_URL'] ?? '';
+      await sqsClient.sendMessage(queueUrl, { lookaheadDays });
+
+      log('info', `${method} ${path}`, Date.now() - start, { requestId, status: 202, lookaheadDays });
+      return accepted({ queued: true, lookaheadDays });
     }
 
-    const queueUrl = process.env['BILLING_LIFECYCLE_QUEUE_URL'] ?? '';
-    await sqsClient.sendMessage(queueUrl, { lookaheadDays });
+    if (method === 'POST' && path === '/admin/dispute-resolution') {
+      const queueUrl = process.env['DISPUTE_RESOLUTION_QUEUE_URL'] ?? '';
+      await sqsClient.sendMessage(queueUrl, {});
 
-    log('info', `${method} ${path}`, Date.now() - start, { requestId, status: 202, lookaheadDays });
-    return accepted({ queued: true, lookaheadDays });
+      log('info', `${method} ${path}`, Date.now() - start, { requestId, status: 202 });
+      return accepted({ message: 'Dispute resolution job enqueued' });
+    }
+
+    if (method === 'POST' && path === '/admin/transaction-settlement') {
+      const queueUrl = process.env['TRANSACTION_SETTLEMENT_QUEUE_URL'] ?? '';
+      await sqsClient.sendMessage(queueUrl, {});
+
+      log('info', `${method} ${path}`, Date.now() - start, { requestId, status: 202 });
+      return accepted({ message: 'Transaction settlement job enqueued' });
+    }
+
+    log('warn', `${method} ${path}`, Date.now() - start, { requestId, status: 404 });
+    return {
+      statusCode: 404,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Route not found' } }),
+    };
   } catch (e) {
     if (e instanceof PixiCredError) {
       log('warn', `${method} ${path}`, Date.now() - start, { requestId, code: e.code, error: e.message });

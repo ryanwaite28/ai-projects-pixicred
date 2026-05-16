@@ -61,6 +61,9 @@ const txn: Transaction = {
   merchantName: 'Amazon',
   amount: 100,
   idempotencyKey: '00000000-0000-4000-8000-000000000004',
+  status: 'PROCESSING',
+  statusUpdatedAt: new Date('2026-05-10T14:00:00Z'),
+  notes: null,
   createdAt: new Date('2026-05-10T14:00:00Z'),
 };
 
@@ -121,12 +124,13 @@ describe('POST /accounts/:accountId/transactions', () => {
     expect(body.error.code).toBe('ACCOUNT_NOT_ACTIVE');
   });
 
-  it('returns 422 INSUFFICIENT_CREDIT when amount exceeds available credit', async () => {
-    mockInvoke.mockRejectedValueOnce(new PixiCredError('INSUFFICIENT_CREDIT', 'Insufficient credit'));
+  it('returns 201 with DENIED transaction when amount exceeds available credit', async () => {
+    const deniedTxn = { ...txn, status: 'DENIED' };
+    mockInvoke.mockResolvedValueOnce(deniedTxn);
     const res = await handler(makeEvent('POST', TXN_PATH, validBody)) as Res;
-    expect(res.statusCode).toBe(422);
+    expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body as string);
-    expect(body.error.code).toBe('INSUFFICIENT_CREDIT');
+    expect(body.data.status).toBe('DENIED');
   });
 
   it('returns 201 with original transaction on idempotent replay', async () => {
@@ -135,6 +139,45 @@ describe('POST /accounts/:accountId/transactions', () => {
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body as string);
     expect(body.data.transactionId).toBe(txn.transactionId);
+  });
+});
+
+describe('POST /accounts/:accountId/transactions/:transactionId/dispute', () => {
+  const TXN_ID = '00000000-0000-4000-8000-000000000003';
+  const DISPUTE_PATH = `/accounts/${ACCOUNT_ID}/transactions/${TXN_ID}/dispute`;
+  const disputedTxn = { ...txn, status: 'DISPUTED' };
+
+  it('returns 200 with disputed transaction on success', async () => {
+    mockInvoke.mockResolvedValueOnce(disputedTxn);
+    const res = await handler(makeEvent('POST', DISPUTE_PATH)) as Res;
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body as string);
+    expect(body.data.status).toBe('DISPUTED');
+  });
+
+  it('invokes disputeTransaction with accountId and transactionId', async () => {
+    mockInvoke.mockResolvedValueOnce(disputedTxn);
+    await handler(makeEvent('POST', DISPUTE_PATH));
+    expect(mockInvoke).toHaveBeenCalledWith({
+      action: 'disputeTransaction',
+      payload: { accountId: ACCOUNT_ID, transactionId: TXN_ID },
+    });
+  });
+
+  it('returns 404 TRANSACTION_NOT_FOUND for unknown transaction', async () => {
+    mockInvoke.mockRejectedValueOnce(new PixiCredError('TRANSACTION_NOT_FOUND', 'not found'));
+    const res = await handler(makeEvent('POST', DISPUTE_PATH)) as Res;
+    expect(res.statusCode).toBe(404);
+    const body = JSON.parse(res.body as string);
+    expect(body.error.code).toBe('TRANSACTION_NOT_FOUND');
+  });
+
+  it('returns 422 TRANSACTION_NOT_DISPUTABLE for non-POSTED transaction', async () => {
+    mockInvoke.mockRejectedValueOnce(new PixiCredError('TRANSACTION_NOT_DISPUTABLE', 'not disputable'));
+    const res = await handler(makeEvent('POST', DISPUTE_PATH)) as Res;
+    expect(res.statusCode).toBe(422);
+    const body = JSON.parse(res.body as string);
+    expect(body.error.code).toBe('TRANSACTION_NOT_DISPUTABLE');
   });
 });
 

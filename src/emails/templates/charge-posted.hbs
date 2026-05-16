@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transaction Posted — PixiCred</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 24px;">
+  <h1 style="color: #2c3e50;">Transaction Posted</h1>
+  <p>Dear Valued Customer,</p>
+  <p>
+    A charge of <strong>${{amount}}</strong> at <strong>{{merchantName}}</strong> has
+    <strong style="color: #27ae60;">posted</strong> to your PixiCred account.
+  </p>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Merchant</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>{{merchantName}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Amount</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${{amount}}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Transaction Date</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">{{createdAt}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; color: #666;">Posted Date</td>
+      <td style="padding: 8px;">{{postedAt}}</td>
+    </tr>
+  </table>
+  <p>
+    View your transaction history in your
+    <a href="{{portalBaseUrl}}/transactions">account portal</a>.
+  </p>
+  <p>Sincerely,<br />The PixiCred Team</p>
+</body>
+</html>

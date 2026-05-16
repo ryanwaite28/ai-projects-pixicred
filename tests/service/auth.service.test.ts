@@ -47,6 +47,9 @@ async function makeApprovedAccount() {
     holderEmail: app.email,
     creditLimit: 6000,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
   return account;
 }
@@ -65,6 +68,9 @@ async function makePendingAccount() {
     holderEmail: app.email,
     creditLimit: 4000,
     paymentDueDate: '2026-06-25',
+    cardNumber: '9876543210987654',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '456',
   });
   return account;
 }

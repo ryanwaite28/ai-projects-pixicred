@@ -52,6 +52,7 @@ export const routes: Routes = [
   { path: 'statements',   loadComponent: () => import('./pages/statements/...'), canActivate: [authGuard] },
   { path: 'settings/notifications', loadComponent: () => import('./pages/settings-notifications/...'), canActivate: [authGuard] },
   { path: 'settings/account',       loadComponent: () => import('./pages/settings-account/...'), canActivate: [authGuard] },
+  { path: 'merchant', loadComponent: () => import('./pages/merchant/merchant.component'), canActivate: [publicGuard] },  // Phase 10e
   { path: '**', redirectTo: '' },
 ];
 ```
@@ -82,6 +83,21 @@ Functional guard:
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   return auth.isAuthenticated() ? true : inject(Router).createUrlTree(['/login']);
+};
+```
+
+### Public guard (`publicGuard`) — Phase 10e
+
+Inverse of `authGuard`. Redirects signed-in users away from pages that should only be accessible when logged out (e.g. `/merchant`):
+
+```typescript
+// frontend/src/app/guards/public.guard.ts
+export const publicGuard = () => {
+  const router = inject(Router);
+  if (localStorage.getItem('pixicred_jwt')) {
+    return router.createUrlTree(['/dashboard']);
+  }
+  return true;
 };
 ```
 
@@ -117,4 +133,6 @@ export const authGuard: CanActivateFn = () => {
 - [x] Tailwind CSS installed and configured with PixiCred custom theme; `ng build` compiles styles with no errors or warnings (FR-FE-15)
 - [x] Shared utility classes (`.pxc-card`, `.pxc-btn-primary`, `.pxc-input`) defined in `src/tailwind.css`; login and setup pages use them (FR-FE-15)
 - [x] Spec status updated to ✅ Implemented
+- [x] Phase 10e: `/merchant` route declared with `canActivate: [publicGuard]`; signed-in users redirected to `/dashboard`
+- [x] Phase 10e: `public.guard.ts` created in `frontend/src/app/guards/`
 - [x] IMPLEMENTATION_PLAN.md Phase 10a row marked complete

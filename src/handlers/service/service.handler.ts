@@ -5,8 +5,8 @@ import { createSesClient } from '../../clients/ses.client.js';
 import { createSnsClient } from '../../clients/sns.client.js';
 import { createSqsClient } from '../../clients/sqs.client.js';
 import { submitApplication, getApplication, runCreditCheck } from '../../service/application.service.js';
-import { getAccount, closeAccount } from '../../service/account.service.js';
-import { postCharge, getTransactions } from '../../service/transaction.service.js';
+import { getAccount, closeAccount, renewCard } from '../../service/account.service.js';
+import { postCharge, getTransactions, postMerchantCharge, disputeTransaction, resolveDisputes, settleTransactions } from '../../service/transaction.service.js';
 import { postPayment } from '../../service/payment.service.js';
 import {
   generateStatement,
@@ -20,6 +20,10 @@ import {
   sendDeclineEmail,
   sendApprovalEmail,
   sendTransactionEmail,
+  sendChargeCreatedEmail,
+  sendChargePostedEmail,
+  sendDisputeConfirmationEmail,
+  sendDisputeResolutionEmail,
   sendStatementEmail,
   sendPaymentDueReminderEmail,
   sendAutoCloseEmail,
@@ -85,12 +89,30 @@ export async function dispatch(event: ServiceAction): Promise<unknown> {
       return sendUserCloseEmail(prisma, clients, event.payload);
     case 'sendApplicationSubmittedEmail':
       return sendApplicationSubmittedEmail(prisma, clients, event.payload);
+    case 'sendChargeCreatedEmail':
+      return sendChargeCreatedEmail(prisma, clients, event.payload);
+    case 'sendChargePostedEmail':
+      return sendChargePostedEmail(prisma, clients, event.payload);
+    case 'sendDisputeConfirmationEmail':
+      return sendDisputeConfirmationEmail(prisma, clients, event.payload);
+    case 'sendDisputeResolutionEmail':
+      return sendDisputeResolutionEmail(prisma, clients, event.payload);
     case 'runBillingLifecycle':
       return runBillingLifecycle(prisma, clients, event.payload);
     case 'registerPortalAccount':
       return registerPortalAccount(prisma, clients, event.payload);
     case 'loginPortalAccount':
       return loginPortalAccount(prisma, clients, event.payload);
+    case 'renewCard':
+      return renewCard(prisma, clients, event.payload);
+    case 'postMerchantCharge':
+      return postMerchantCharge(prisma, clients, event.payload);
+    case 'disputeTransaction':
+      return disputeTransaction(prisma, clients, event.payload);
+    case 'resolveDisputes':
+      return resolveDisputes(prisma, clients, event.payload);
+    case 'settleTransactions':
+      return settleTransactions(prisma, clients, event.payload);
   }
 }
 

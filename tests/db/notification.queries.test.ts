@@ -27,6 +27,9 @@ async function seedAccount() {
     holderEmail: 'notif@example.com',
     creditLimit: 5000,
     paymentDueDate: '2026-06-25',
+    cardNumber: '1234567890123456',
+    cardExpiry: new Date('2029-06-01T00:00:00Z'),
+    cardCvv: '123',
   });
 }
 

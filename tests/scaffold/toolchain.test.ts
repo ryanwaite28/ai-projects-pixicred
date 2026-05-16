@@ -15,7 +15,19 @@ describe('TypeScript toolchain', () => {
 
   test('esbuild bundles all Lambda entry points without error', () => {
     expect(() => execSync('npm run build', { stdio: 'pipe' })).not.toThrow();
-    expect(existsSync('dist/lambdas/api-applications/index.js')).toBe(true);
+
+    const expectedBundles = [
+      'api-applications', 'api-accounts', 'api-transactions', 'api-payments',
+      'api-statements', 'api-notifications', 'api-auth', 'api-admin',
+      'api-merchant', 'api-health',
+      'service',
+      'credit-check', 'notification', 'statement-gen', 'billing-lifecycle',
+      'dispute-resolution', 'transaction-settlement',
+    ];
+
+    for (const name of expectedBundles) {
+      expect(existsSync(`dist/lambdas/${name}/index.js`), `missing bundle: ${name}`).toBe(true);
+    }
   });
 
   test('ESLint exits 0 on src/db/client.ts', () => {

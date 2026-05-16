@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import type { Statement, Transaction, TransactionType } from '../../types/index';
+import type { Statement, Transaction, TransactionType, TransactionStatus } from '../../types/index';
 
 export interface CreateStatementInput {
   accountId: string;
@@ -20,6 +20,9 @@ function mapTransaction(row: {
   merchantName: string | null;
   amount: { toNumber(): number };
   idempotencyKey: string;
+  status: string;
+  statusUpdatedAt: Date;
+  notes: string | null;
   createdAt: Date;
 }): Transaction {
   return {
@@ -29,6 +32,9 @@ function mapTransaction(row: {
     merchantName: row.merchantName,
     amount: row.amount.toNumber(),
     idempotencyKey: row.idempotencyKey,
+    status: row.status as TransactionStatus,
+    statusUpdatedAt: row.statusUpdatedAt,
+    notes: row.notes ?? null,
     createdAt: row.createdAt,
   };
 }

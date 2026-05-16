@@ -41,8 +41,10 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   log('info', `${method} ${path}`, 0, { requestId });
 
   try {
-    const routeMatch = /^\/accounts\/([^/]+)\/transactions$/.exec(path);
-    if (!routeMatch) {
+    const disputeMatch = /^\/accounts\/([^/]+)\/transactions\/([^/]+)\/dispute$/.exec(path);
+    const listMatch    = /^\/accounts\/([^/]+)\/transactions$/.exec(path);
+
+    if (!disputeMatch && !listMatch) {
       log('warn', `${method} ${path}`, Date.now() - start, { requestId, status: 404 });
       return {
         statusCode: 404,
@@ -51,12 +53,23 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       };
     }
 
-    const accountId = routeMatch[1] as string;
+    const accountId = ((disputeMatch ?? listMatch)![1]) as string;
     const { JWT_SECRET } = await getConfig();
     validateBearerToken(event.headers['authorization'], accountId, JWT_SECRET);
 
+    // POST /accounts/:accountId/transactions/:transactionId/dispute
+    if (disputeMatch && method === 'POST') {
+      const transactionId = disputeMatch[2] as string;
+      const transaction = await serviceClient.invoke<Transaction>({
+        action: 'disputeTransaction',
+        payload: { accountId, transactionId },
+      });
+      log('info', `${method} ${path}`, Date.now() - start, { requestId, status: 200 });
+      return ok(200, transaction);
+    }
+
     // POST /accounts/:accountId/transactions
-    if (method === 'POST') {
+    if (listMatch && method === 'POST') {
       const body = JSON.parse(event.body ?? '{}') as Record<string, unknown>;
 
       if (!body['merchantName'] || typeof body['merchantName'] !== 'string') {
@@ -83,7 +96,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     }
 
     // GET /accounts/:accountId/transactions
-    if (method === 'GET') {
+    if (listMatch && method === 'GET') {
       const qs = event.queryStringParameters ?? {};
       const cursor = qs['cursor'] ?? undefined;
       const limitRaw = qs['limit'];

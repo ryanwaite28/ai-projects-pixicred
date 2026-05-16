@@ -30,15 +30,44 @@ Phase 0 — Scaffold
                                                                                     └─► Phase 7 — API Gateway & Full Wiring
                                                                                           └─► Phase 8 — DevOps & Hardening
                                                                                                 └─► Phase 9 — Backend Auth
+                                                                                                      ├─► Phase 11a — Card Management (backend)
+                                                                                                      │     └─► Phase 11b — Merchant Charge (backend)
+                                                                                                      │           └─► Phase 12a — Transaction Status Schema
+                                                                                                      │                 └─► Phase 12b — Transaction Charge Behavior
+                                                                                                      │                 │         └─► Phase 12c — Transaction Settlement Job
+                                                                                                      │                 │         └─► Phase 12d — Transaction Dispute API ──► Phase 12f — Transaction Status Emails
+                                                                                                      │                 │                └─► Phase 12e — Dispute Resolution Job ─────────────────────────────────────┘
                                                                                                       └─► Phase 10a — Frontend: Scaffold & Auth Shell
                                                                                                             └─► Phase 10b — Frontend: Public Apply Flow
                                                                                                                   └─► Phase 10c — Frontend: Account Pages
                                                                                                                         └─► Phase 10d — Frontend: Settings Pages
+                                                                                                                              └─► Phase 10e — Frontend: Merchant Page
+                                                                                                                                    └─► Phase 12g — Frontend: Transaction Status & Dispute
 ```
 
 **Phase 6 depends on both Phase 4.5 AND Phase 5** — all email templates must exist before the notification service is built.
 
 **Phase 10b, 10c, 10d all depend on Phase 10a** — auth shell (routing, guard, interceptor, auth service) must exist before any pages are added.
+
+**Phase 11a depends on Phase 9** — card fields are added to the Account model and wired into account creation; service layer and auth must already be in place.
+
+**Phase 11b depends on Phase 11a** — merchant charge looks up Account by card number, which requires card fields to exist.
+
+**Phase 10e depends on Phase 10d AND Phase 11b** — merchant page requires routing/guard infrastructure from 10a and the live merchant charge endpoint from 11b.
+
+**Phase 12a depends on Phase 11b** — transaction status schema is built on top of the complete existing transaction implementation.
+
+**Phase 12b depends on Phase 12a** — charge behavior change (PROCESSING/DENIED) requires the status column to exist.
+
+**Phase 12c depends on Phase 12b** — settlement job advances PROCESSING transactions; requires PROCESSING status to be in use.
+
+**Phase 12d depends on Phase 12b AND Phase 12f** — dispute endpoint requires POSTED status to exist (Phase 12b) and the dispute confirmation email template to exist (Phase 12f) before the notification routing is wired.
+
+**Phase 12e depends on Phase 12d AND Phase 12f** — dispute resolution job requires DISPUTED status (Phase 12d) and the resolution email template (Phase 12f).
+
+**Phase 12f depends on Phase 12a** — email templates reference the status field; email routing references all status-based SNS events. Phase 12f is the prerequisite for 12d and 12e because email templates must exist before notification routing is wired.
+
+**Phase 12g depends on Phase 12b AND Phase 12d AND Phase 10e** — frontend updates require PROCESSING/DENIED API responses (12b), the dispute endpoint (12d), and the existing merchant page infrastructure (10e for publicGuard pattern reference).
 
 **Never start a phase whose prerequisites are not ✅ Complete.**
 
@@ -550,6 +579,254 @@ All ID parameters on every service function and handler are validated with `asse
 
 ---
 
+### Phase 11a — Card Management (backend)
+
+**Governing spec**: `specs/13-card-management.md`
+**Prerequisites**: Phase 9 ✅ (service layer + auth wired)
+**Session estimate**: 1 session
+
+**Key files**:
+- `prisma/schema.prisma` — `cardNumber`, `cardExpiry`, `cardCvv` added to `Account`
+- `src/lib/card.ts` — `generateCardNumber`, `generateCardExpiry`, `generateCardCvv`
+- `src/db/queries/account.queries.ts` — `createAccount` + `mapAccount` updated; `updateCardExpiry` added
+- `src/service/account.service.ts` — `renewCard` added
+- `src/service/application.service.ts` — `runCreditCheck` passes card credentials to `createAccount`
+- `src/handlers/api/accounts.handler.ts` — `POST /accounts/:accountId/card/renew` added
+- `src/emails/approval.template.ts` + `src/emails/templates/approval.hbs` — card details section added
+- `src/handlers/service/service.handler.ts` — `renewCard` dispatch case
+
+**Done when**:
+- [x] Prisma migration runs cleanly; `accounts` table has `card_number`, `card_expiry`, `card_cvv` columns
+- [x] `Account` TypeScript interface includes `cardNumber`, `cardExpiry`, `cardCvv`
+- [x] `runCreditCheck` generates and stores card credentials for every approved account
+- [x] `getAccount` returns card fields
+- [x] `renewCard` extends expiry by 36 months and returns updated account
+- [x] `POST /accounts/:accountId/card/renew` returns `201` with updated expiry; requires valid JWT
+- [x] Approval email HTML and plaintext include card number, expiry, CVV
+- [x] Unit tests for card generation functions and `renewCard`
+- [x] Integration test for `POST /accounts/:accountId/card/renew`
+- [x] `npm run typecheck` passes
+
+---
+
+### Phase 11b — Merchant Charge (backend)
+
+**Governing spec**: `specs/14-merchant-charge.md`
+**Prerequisites**: Phase 11a ✅ (card fields on Account), Phase 3b ✅ (postCharge in place)
+**Session estimate**: 1 session
+
+**Key files**:
+- `prisma/schema.prisma` — `cardNumber @unique` constraint; migration `add_card_number_unique`
+- `src/types/index.ts` — `PostMerchantChargeInput` + `postMerchantCharge` ServiceAction entry
+- `src/lib/errors.ts` — `CARD_NOT_FOUND`, `INVALID_CARD_CVV`, `CARD_EXPIRED` error codes
+- `src/db/queries/account.queries.ts` — `getAccountByCardNumber`
+- `src/service/transaction.service.ts` — `postMerchantCharge`
+- `src/handlers/api/merchant.handler.ts` — NEW; `POST /merchant/charge` (no auth)
+- `src/handlers/service/service.handler.ts` — `postMerchantCharge` dispatch case
+
+**Done when**:
+- [x] `cardNumber @unique` constraint applied; migration runs cleanly
+- [x] `getAccountByCardNumber` query returns `Account | null`
+- [x] `postMerchantCharge` resolves account by card number, validates CVV and expiry, posts charge
+- [x] Idempotency: same key returns original transaction without re-charging
+- [x] `CARD_NOT_FOUND`, `INVALID_CARD_CVV`, `CARD_EXPIRED` error codes in place
+- [x] `POST /merchant/charge` returns `201` with transaction; no JWT required
+- [x] `POST /merchant/charge` returns `404`/`422` on domain errors
+- [x] Unit tests for `postMerchantCharge` (happy path + all error cases)
+- [x] Integration test for `POST /merchant/charge`
+- [x] `npm run typecheck` passes
+
+---
+
+### Phase 10e — Frontend: Merchant Demo Page
+
+**Governing spec**: `specs/12e-frontend-merchant.md`
+**Prerequisites**: Phase 10a ✅ (routing/guards), Phase 11b ✅ (merchant charge endpoint live)
+**Session estimate**: 1 session
+
+**Key files**:
+- `frontend/src/app/guards/public.guard.ts` — NEW; redirects signed-in users to `/dashboard`
+- `frontend/src/app/app.routes.ts` — `/merchant` route with `publicGuard`
+- `frontend/src/app/services/merchant.service.ts` — NEW; `postMerchantCharge` API call
+- `frontend/src/app/pages/merchant/` — NEW component (`.ts`, `.html`, `.css`)
+
+**Done when**:
+- [ ] `/merchant` route registered with `publicGuard`; logged-in users redirected to `/dashboard`
+- [ ] `MerchantService.postMerchantCharge` calls `POST /merchant/charge` without injecting JWT
+- [ ] Charge form validates all four fields before submitting; fresh `idempotencyKey` on each submit
+- [ ] On success, confirmation panel shows transaction details
+- [ ] On error, inline error message from API displayed
+- [ ] "Merchant Demo" link in signed-out nav only
+- [ ] `ng build` succeeds; manual browser test passes
+
+---
+
+### Phase 12a — Transaction Status Schema
+
+**Governing spec**: `specs/15a-transaction-status-schema.md`
+**Prerequisites**: Phase 11b ✅
+**Session estimate**: 1 session
+
+**Key files**:
+- `prisma/schema.prisma` — `status` and `statusUpdatedAt` columns + two new indexes
+- `src/types/index.ts` — `TransactionStatus` union, updated `Transaction` interface
+- `src/db/queries/transaction.queries.ts` — `CreateTransactionInput` updated, `mapTransaction` updated
+- `src/service/transaction.service.ts` — `postCharge` passes `status: 'PROCESSING'`
+- `src/service/payment.service.ts` — `postPayment` passes `status: 'POSTED'`
+
+**Done when**:
+- [ ] Migration runs cleanly; `transactions` table has `status` and `status_updated_at` columns
+- [ ] Existing PAYMENT rows have `status = 'POSTED'`; CHARGE rows have `status = 'PROCESSING'`
+- [ ] `TransactionStatus` type and updated `Transaction` interface compile
+- [ ] All existing tests pass with `status` field added to `createTransaction` calls
+- [ ] `npm run typecheck` passes
+
+---
+
+### Phase 12b — Transaction Charge Behavior Update
+
+**Governing spec**: `specs/15b-transaction-charge-behavior.md`
+**Prerequisites**: Phase 12a ✅
+**Session estimate**: 1 session
+
+**Key files**:
+- `src/service/transaction.service.ts` — `postCharge` DENIED path + `TRANSACTION_CREATED` event
+- `src/lib/errors.ts` — `INSUFFICIENT_CREDIT` review
+- `tests/service/transaction.service.test.ts` — update insufficient credit tests
+- `tests/handlers/merchant.handler.test.ts` — update 422 → 201 DENIED test
+
+**Done when**:
+- [x] `postCharge` creates DENIED transaction (no balance change) when amount > availableCredit
+- [x] `postCharge` creates PROCESSING transaction and increments balance when amount ≤ availableCredit
+- [x] Both paths publish `TRANSACTION_CREATED` SNS event
+- [x] `postPayment` unchanged; still publishes `TRANSACTION_POSTED`
+- [x] Idempotency returns existing DENIED transaction on replay
+- [x] All existing tests updated and passing
+- [x] `npm run typecheck` passes
+
+---
+
+### Phase 12c — Transaction Settlement Job
+
+**Governing spec**: `specs/15c-transaction-settlement-job.md`
+**Prerequisites**: Phase 12b ✅, Phase 4.5 ✅
+**Session estimate**: 1 session
+
+**Key files**:
+- `src/service/transaction.service.ts` — `settleTransactions()`
+- `src/db/queries/transaction.queries.ts` — `getProcessingChargesOlderThan`, `updateTransactionStatus`
+- `src/handlers/sqs/transaction-settlement.handler.ts` — NEW
+- `src/handlers/api/admin.handler.ts` — `POST /admin/transaction-settlement`
+- `src/handlers/service/service.handler.ts` — `settleTransactions` dispatch case
+- `infra/ministack/init.sh`, `local/worker.ts` — queue + polling
+
+**Done when**:
+- [ ] `settleTransactions` advances PROCESSING CHARGE transactions ≥ 24h to POSTED
+- [ ] `TRANSACTION_POSTED` SNS event published per settled transaction
+- [ ] `POST /admin/transaction-settlement` returns 202
+- [ ] Unit + integration tests pass
+- [ ] `npm run typecheck` passes
+
+---
+
+### Phase 12d — Transaction Dispute API
+
+**Governing spec**: `specs/15d-transaction-dispute.md`
+**Prerequisites**: Phase 12b ✅, Phase 12f ✅
+**Session estimate**: 1 session
+
+**Key files**:
+- `src/service/transaction.service.ts` — `disputeTransaction()`
+- `src/db/queries/transaction.queries.ts` — `getTransactionById`
+- `src/lib/errors.ts` — `TRANSACTION_NOT_FOUND`, `TRANSACTION_NOT_DISPUTABLE`
+- `src/handlers/api/transactions.handler.ts` — `POST .../dispute` route
+- `src/service/notification.service.ts` — `TRANSACTION_DISPUTED` routing
+
+**Done when**:
+- [ ] Only POSTED transactions can be disputed; all other statuses return `TRANSACTION_NOT_DISPUTABLE`
+- [ ] Successful dispute: status → DISPUTED, `TRANSACTION_DISPUTED` SNS event
+- [ ] Notification service routes `TRANSACTION_DISPUTED` → `sendDisputeConfirmationEmail` (no preference gate)
+- [ ] Unit + integration tests pass
+- [ ] `npm run typecheck` passes
+
+---
+
+### Phase 12e — Dispute Resolution Job
+
+**Governing spec**: `specs/15e-dispute-resolution-job.md`
+**Prerequisites**: Phase 12d ✅, Phase 12f ✅
+**Session estimate**: 1 session
+
+**Key files**:
+- `src/service/transaction.service.ts` — `resolveDisputes()`
+- `src/db/queries/transaction.queries.ts` — `getDisputedTransactions`
+- `src/handlers/sqs/dispute-resolution.handler.ts` — NEW
+- `src/handlers/api/admin.handler.ts` — `POST /admin/dispute-resolution`
+- `src/handlers/service/service.handler.ts` — `resolveDisputes` dispatch case
+- `src/service/notification.service.ts` — `DISPUTE_RESOLVED` routing
+- `infra/ministack/init.sh`, `local/worker.ts` — queue + polling
+
+**Done when**:
+- [ ] `resolveDisputes` randomly assigns DISPUTED → DISPUTE_ACCEPTED or DISPUTE_DENIED
+- [ ] `DISPUTE_RESOLVED` SNS event published with `outcome` per transaction
+- [ ] `POST /admin/dispute-resolution` returns 202
+- [ ] Notification service routes `DISPUTE_RESOLVED` → `sendDisputeResolutionEmail` (no preference gate)
+- [ ] Unit + integration tests pass
+- [ ] `npm run typecheck` passes
+
+---
+
+### Phase 12f — Transaction Status Emails
+
+**Governing spec**: `specs/15f-transaction-status-emails.md`
+**Prerequisites**: Phase 12a ✅, Phase 6 ✅
+**Session estimate**: 1–2 sessions
+
+**Key files**:
+- `src/emails/templates/charge-created.hbs` — NEW
+- `src/emails/templates/charge-posted.hbs` — NEW
+- `src/emails/templates/dispute-confirmation.hbs` — NEW
+- `src/emails/templates/dispute-resolution.hbs` — NEW
+- `src/emails/charge-created.template.ts` — NEW
+- `src/emails/charge-posted.template.ts` — NEW
+- `src/emails/dispute-confirmation.template.ts` — NEW
+- `src/emails/dispute-resolution.template.ts` — NEW
+- `src/service/notification.service.ts` — updated event routing
+
+**Done when**:
+- [ ] All four templates render correctly (PROCESSING/DENIED variants, ACCEPTED/DENIED variants)
+- [ ] `TRANSACTION_CREATED` → `sendChargeCreatedEmail` (gated by `transactionsEnabled`)
+- [ ] `TRANSACTION_POSTED` for CHARGE → `sendChargePostedEmail` (gated by `transactionsEnabled`)
+- [ ] `TRANSACTION_POSTED` for PAYMENT → existing `sendTransactionEmail` (unchanged)
+- [ ] `TRANSACTION_DISPUTED` → `sendDisputeConfirmationEmail` (no gate)
+- [ ] `DISPUTE_RESOLVED` → `sendDisputeResolutionEmail` (no gate)
+- [ ] Unit tests for all four template functions
+- [ ] `npm run typecheck` passes
+
+---
+
+### Phase 12g — Frontend: Transaction Status & Dispute
+
+**Governing spec**: `specs/15g-frontend-transaction-updates.md`
+**Prerequisites**: Phase 12b ✅, Phase 12d ✅, Phase 10e ✅
+**Session estimate**: 1 session
+
+**Key files**:
+- `frontend/src/app/services/account.service.ts` — `Transaction` interface update, `disputeTransaction()` method
+- `frontend/src/app/pages/transactions/transactions.component.ts` — dispute signals + logic
+- `frontend/src/app/pages/transactions/transactions.component.html` — status badges, Dispute button, confirmation modal
+- `frontend/src/app/pages/merchant/merchant.component.html` — show transaction status in confirmation panel
+
+**Done when**:
+- [x] Status badge renders for all 6 statuses with correct color
+- [x] Dispute button visible only on POSTED CHARGE transactions
+- [x] Confirmation modal shown before API call
+- [x] On success: transaction status updated in list to DISPUTED
+- [x] Merchant page shows PROCESSING/DENIED status in confirmation
+- [x] `ng build` succeeds
+
+---
+
 ## Session Protocol
 
 Paste this prompt at the start of any new implementation session:
@@ -592,6 +869,16 @@ and reported your findings.
 | 10b | Frontend: Public Apply Flow | `specs/12b-frontend-public.md` | ✅ Complete | 2026-05-13 |
 | 10c | Frontend: Account Pages | `specs/12c-frontend-account.md` | ✅ Complete | 2026-05-13 |
 | 10d | Frontend: Settings Pages | `specs/12d-frontend-settings.md` | ✅ Complete | 2026-05-13 |
+| 11a | Card Management (backend) | `specs/13-card-management.md` | ✅ Complete | 2026-05-15 |
+| 11b | Merchant Charge (backend) | `specs/14-merchant-charge.md` | ✅ Complete | 2026-05-15 |
+| 10e | Frontend: Merchant Demo Page | `specs/12e-frontend-merchant.md` | ✅ Complete | 2026-05-15 |
+| 12a | Transaction Status Schema | `specs/15a-transaction-status-schema.md` | ✅ Complete | 2026-05-15 |
+| 12b | Transaction Charge Behavior | `specs/15b-transaction-charge-behavior.md` | ✅ Complete | 2026-05-15 |
+| 12c | Transaction Settlement Job | `specs/15c-transaction-settlement-job.md` | ✅ Complete | 2026-05-16 |
+| 12d | Transaction Dispute API | `specs/15d-transaction-dispute.md` | ✅ Complete | 2026-05-15 |
+| 12e | Dispute Resolution Job | `specs/15e-dispute-resolution-job.md` | ✅ Complete | 2026-05-16 |
+| 12f | Transaction Status Emails | `specs/15f-transaction-status-emails.md` | ✅ Complete | 2026-05-15 |
+| 12g | Frontend: Transaction Status & Dispute | `specs/15g-frontend-transaction-updates.md` | ✅ Complete | 2026-05-16 |
 
 ---
 

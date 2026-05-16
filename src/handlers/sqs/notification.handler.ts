@@ -48,6 +48,15 @@ export const handler = async (event: SQSEvent): Promise<void> => {
     } else if (eventType === 'APPLICATION_SUBMITTED') {
       const p = payload as { applicationId: string };
       await serviceClient.invoke({ action: 'sendApplicationSubmittedEmail', payload: { applicationId: p.applicationId } });
+    } else if (eventType === 'TRANSACTION_CREATED') {
+      const p = payload as { transactionId: string };
+      await serviceClient.invoke({ action: 'sendChargeCreatedEmail', payload: { transactionId: p.transactionId } });
+    } else if (eventType === 'TRANSACTION_DISPUTED') {
+      const p = payload as { transactionId: string };
+      await serviceClient.invoke({ action: 'sendDisputeConfirmationEmail', payload: { transactionId: p.transactionId } });
+    } else if (eventType === 'DISPUTE_RESOLVED') {
+      const p = payload as { transactionId: string; outcome: 'DISPUTE_ACCEPTED' | 'DISPUTE_DENIED' };
+      await serviceClient.invoke({ action: 'sendDisputeResolutionEmail', payload: { transactionId: p.transactionId, outcome: p.outcome } });
     } else {
       log('warn', 'notification.handler', 0, { note: 'unknown eventType — acknowledged without action', eventType });
     }

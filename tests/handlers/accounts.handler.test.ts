@@ -60,6 +60,9 @@ const activeAccount: Account = {
   closeReason: null,
   closedAt: null,
   createdAt: new Date('2026-05-01T00:00:00Z'),
+  cardNumber: '1234567890123456',
+  cardExpiry: '2029-06-01',
+  cardCvv: '123',
 };
 
 const closedAccount: Account = {
@@ -147,5 +150,45 @@ describe('DELETE /accounts/:accountId', () => {
         payload: expect.objectContaining({ reason: 'AUTO_NONPAYMENT' }),
       }),
     );
+  });
+});
+
+describe('POST /accounts/:accountId/card/renew', () => {
+  const renewedAccount: Account = {
+    ...activeAccount,
+    cardExpiry: '2029-06-01',
+  };
+
+  it('returns 201 with updated account and new cardExpiry', async () => {
+    mockInvoke.mockResolvedValueOnce(renewedAccount);
+    const res = await handler(makeEvent('POST', '/accounts/00000000-0000-4000-8000-000000000002/card/renew')) as Res;
+    expect(res.statusCode).toBe(201);
+    const body = JSON.parse(res.body as string);
+    expect(body.data.cardExpiry).toBeDefined();
+  });
+
+  it('invokes renewCard action with accountId', async () => {
+    mockInvoke.mockResolvedValueOnce(renewedAccount);
+    await handler(makeEvent('POST', '/accounts/00000000-0000-4000-8000-000000000002/card/renew'));
+    expect(mockInvoke).toHaveBeenCalledWith({
+      action: 'renewCard',
+      payload: { accountId: '00000000-0000-4000-8000-000000000002' },
+    });
+  });
+
+  it('returns 422 ACCOUNT_CLOSED when account is closed', async () => {
+    mockInvoke.mockRejectedValueOnce(new PixiCredError('ACCOUNT_CLOSED', 'Cannot renew card on a closed account'));
+    const res = await handler(makeEvent('POST', '/accounts/00000000-0000-4000-8000-000000000002/card/renew')) as Res;
+    expect(res.statusCode).toBe(422);
+    const body = JSON.parse(res.body as string);
+    expect(body.error.code).toBe('ACCOUNT_CLOSED');
+  });
+
+  it('returns 404 ACCOUNT_NOT_FOUND for unknown accountId', async () => {
+    mockInvoke.mockRejectedValueOnce(new PixiCredError('ACCOUNT_NOT_FOUND', 'Account not found'));
+    const res = await handler(makeEvent('POST', '/accounts/00000000-0000-4000-8000-000000000099/card/renew')) as Res;
+    expect(res.statusCode).toBe(404);
+    const body = JSON.parse(res.body as string);
+    expect(body.error.code).toBe('ACCOUNT_NOT_FOUND');
   });
 });

@@ -59,16 +59,22 @@ The handler parses `record.body` as the SNS envelope, then parses `envelope.Mess
 ### `src/handlers/sqs/notification.handler.ts` — routing table
 
 ```
-eventType                         payload fields used        service action
-───────────────────────────────────────────────────────────────────────────
-APPLICATION_DECIDED (DECLINED)    { applicationId }          sendDeclineEmail
-APPLICATION_DECIDED (APPROVED)    { applicationId }          sendApprovalEmail
-TRANSACTION_POSTED                { transactionId }          sendTransactionEmail
-STATEMENT_GENERATED               { statementId }            sendStatementEmail
-PAYMENT_DUE_REMINDER              { accountId }              sendPaymentDueReminderEmail
-ACCOUNT_AUTO_CLOSED               { accountId }              sendAutoCloseEmail
-ACCOUNT_USER_CLOSED               { accountId }              sendUserCloseEmail
+eventType                         payload fields used                      service action
+─────────────────────────────────────────────────────────────────────────────────────────────
+APPLICATION_DECIDED (DECLINED)    { applicationId }                        sendDeclineEmail
+APPLICATION_DECIDED (APPROVED)    { applicationId }                        sendApprovalEmail
+TRANSACTION_POSTED                { transactionId }                        sendTransactionEmail *
+TRANSACTION_CREATED               { transactionId }                        sendChargeCreatedEmail
+TRANSACTION_DISPUTED              { transactionId }                        sendDisputeConfirmationEmail
+DISPUTE_RESOLVED                  { transactionId, outcome }               sendDisputeResolutionEmail
+STATEMENT_GENERATED               { statementId }                          sendStatementEmail
+PAYMENT_DUE_REMINDER              { accountId }                            sendPaymentDueReminderEmail
+ACCOUNT_AUTO_CLOSED               { accountId }                            sendAutoCloseEmail
+ACCOUNT_USER_CLOSED               { accountId }                            sendUserCloseEmail
+APPLICATION_SUBMITTED             { applicationId }                        sendApplicationSubmittedEmail
 ```
+
+\* `sendTransactionEmail` internally branches on `transaction.type`: PAYMENT → `buildTransactionEmail`; CHARGE → `buildChargePostedEmail`. The CHARGE path is triggered by the settlement job advancing PROCESSING→POSTED (Phase 12c).
 
 The split on `payload.decision` for `APPLICATION_DECIDED` is dispatch routing, not domain logic. Unknown `eventType` values are logged as warnings and acknowledged without throwing — unrecognised events must not fill the DLQ.
 
@@ -114,6 +120,7 @@ Every `send*Email` function follows this structure:
 - Fetches: `application`, `account = getAccountByApplicationId(prisma, applicationId)`
 - **Not preference-gated**
 - Template: `buildApprovalEmail(application, account)` (defined in `specs/03-application-underwriting.md`)
+- **Phase 11a (FR-EMAIL-02, FR-ACC-11)**: `account` now carries `cardNumber`, `cardExpiry`, `cardCvv`. The template adds a "Your Card Details" section with card number (formatted as groups of 4), expiry (MM/YY), and CVV. No signature change — `account: Account` already includes card fields after Phase 11a.
 
 ### `sendTransactionEmail(prisma, clients, { transactionId }): Promise<void>`
 
